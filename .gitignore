@@ -1,2 +1,39 @@
 #-files
 SENTINEL-GPU-PERSONAL-EXECUTION-PLAN.md
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+
+# Build artifacts
+build/
+dist/
+cmake-build-*/
+*.o
+*.so
+*.a
+
+# Generated datasets
+data/*
+!data/.gitkeep
+
+# Generated results
+results/*
+!results/.gitkeep
+
+# Logs
+*.log
