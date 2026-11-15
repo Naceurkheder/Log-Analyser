@@ -37,3 +37,7 @@ results/*
 
 # Logs
 *.log
+
+
+# IDE
+../.openidea/
