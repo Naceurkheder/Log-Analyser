@@ -38,6 +38,18 @@ dns-check: ## Verify inter-container name resolution from infra
 	$(FLEET) dns-check
 
 # ---------------------------------------------------------------------------
+# Dataset (synthetic — replaces bulk LogHub downloads)
+# ---------------------------------------------------------------------------
+dataset: ## Generate the 100 MB benchmark dataset into data/ (gitignored)
+	python3 scripts/gen_dataset.py --size-mb 100 --out data/bench.log
+
+dataset-sample: ## Regenerate the committed test fixture (fixed seed)
+	python3 scripts/gen_dataset.py --lines 10000 --out tests/fixtures/sample.log
+
+test: ## Run the python test suite
+	python3 -m pytest tests/ -q
+
+# ---------------------------------------------------------------------------
 # Emulated AWS (moto in infra) + Terraform (runs on the host)
 # ---------------------------------------------------------------------------
 infra: ## Bootstrap emulated AWS + apply Terraform resources (idempotent)
