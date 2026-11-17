@@ -36,3 +36,17 @@ shell: ## Open a shell in a container: make shell C=infra
 
 dns-check: ## Verify inter-container name resolution from infra
 	$(FLEET) dns-check
+
+# ---------------------------------------------------------------------------
+# Emulated AWS (moto in infra) + Terraform (runs on the host)
+# ---------------------------------------------------------------------------
+infra: ## Bootstrap emulated AWS + apply Terraform resources (idempotent)
+	./lxd/bootstrap-infra.sh infra
+	terraform -chdir=$(TF_DIR) init -reconfigure -input=false
+	terraform -chdir=$(TF_DIR) apply -auto-approve -input=false
+
+infra-destroy: ## Tear down Terraform-managed emulated AWS resources
+	terraform -chdir=$(TF_DIR) destroy -auto-approve -input=false
+
+verify: ## Verify buckets/queues/tables/redrive from the host
+	./scripts/verify-infra.sh
