@@ -6,6 +6,30 @@ Sentinel-GPU processes large system-log datasets as independent jobs across a he
 
 > **Project status:** Active development. This README describes the target architecture and intended execution model. A component should be considered implemented only when its code, configuration, and corresponding tests are present in the repository.
 
+> **Implemented so far (Sprints 1–2):** LXD fleet, emulated AWS plane (S3/SQS/DynamoDB via moto) with Terraform, synthetic dataset generator, CUDA detection kernels + CPU reference, parity tests and benchmark harness. Sprint status detail: `docs/decisions/`.
+
+## Quickstart
+
+```bash
+# 1. One-shot host setup (LXD, Terraform, AWS CLI, CUDA toolkit, firewall fix)
+sudo ./scripts/setup_host.sh
+
+# 2. Day-to-day
+make up              # launch the container fleet (idempotent)
+make infra           # provision emulated AWS resources (idempotent)
+make verify          # assert buckets/queues/tables/redrive wiring
+make dataset         # generate the 100 MB benchmark dataset (fixed seed)
+make test            # python test suite
+make test-cpp        # CPU/GPU kernel parity test
+make bench-kernels   # CPU vs GPU 100 MB benchmark + speedup
+make status          # fleet state and resource caps
+```
+
+The fleet is sized for a 16 GB laptop (4 containers, 4.6 GiB of caps):
+`infra` (emulated AWS), `gpu-worker-1`, `cpu-worker-1`, `dashboard`.
+See `docs/decisions/0001-resized-fleet.md`. The dataset is synthetic and
+deterministic — no dataset downloads are required (`docs/decisions/0004-*.md`).
+
 ## Overview
 
 The pipeline accepts a dataset, divides it into bounded chunks, routes each chunk to a worker with the required execution capability, and persists detection results for evaluation and inspection.
