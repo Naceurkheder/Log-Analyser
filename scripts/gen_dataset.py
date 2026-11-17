@@ -174,19 +174,13 @@ def generate(*, out, seed: int, target_bytes: int | None, target_lines: int | No
     ip_pool = [f"10.{rng.randint(1, 60)}.{rng.randint(0, 254)}.{rng.randint(1, 254)}"
                for _ in range(120)]
 
-    state = {"burst_idx": 0, "written": 0, "pending": 0, "nlines": 0}
+    state = {"burst_idx": 0, "written": 0, "nlines": 0}
     buf: list[str] = []
     FLUSH_LINES = 8192
 
     def emit(line: str) -> None:
-        """Append one line to the buffer, honoring the byte budget."""
-        nbytes = len(line) + 1
-        if (target_bytes is not None
-                and state["written"] + state["pending"] + nbytes > target_bytes):
-            state["stop"] = True
-            return
+        """Append one line to the buffer, flushing when the buffer fills."""
         buf.append(line)
-        state["pending"] += nbytes
         state["nlines"] += 1
         if len(buf) >= FLUSH_LINES:
             flush()
@@ -197,16 +191,12 @@ def generate(*, out, seed: int, target_bytes: int | None, target_lines: int | No
         chunk = "".join(line + "\n" for line in buf)
         out.write(chunk)
         state["written"] += len(chunk)
-        state["pending"] = 0
         buf.clear()
 
     while True:
-        if state.get("stop"):
-            break
         if target_lines is not None and state["nlines"] >= target_lines:
             break
-        if (target_bytes is not None
-                and state["written"] + state["pending"] >= target_bytes):
+        if target_bytes is not None and state["written"] >= target_bytes:
             break
 
         if state["burst_idx"] >= burst_every:
@@ -226,15 +216,8 @@ def generate(*, out, seed: int, target_bytes: int | None, target_lines: int | No
                 n = burst_error_code(rng, ts, buf)
                 stats["error_code"] += n
             state["nlines"] += n
-            # account approximately for burst bytes so the byte budget stays tight
-            state["pending"] += n * 90
             ts += n
-            if state.get("stop") or (
-                target_lines is not None and state["nlines"] >= target_lines
-            ) or (
-                target_bytes is not None
-                and state["written"] + state["pending"] >= target_bytes
-            ):
+            if target_lines is not None and state["nlines"] >= target_lines:
                 break
             continue
         state["burst_idx"] += 1
