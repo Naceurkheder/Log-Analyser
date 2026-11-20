@@ -100,7 +100,8 @@ __device__ __forceinline__ void table_add(CellTable t, uint64_t skey,
     uint32_t mask = (uint32_t)(TABLE_SLOTS - 1);
     uint32_t s = (uint32_t)((cell_hash(skey) >> 32) & mask);
     for (;;) {
-        uint64_t prev = atomicCAS(&t.keys[s], 0ull, skey);
+        uint64_t prev = atomicCAS(reinterpret_cast<unsigned long long*>(&t.keys[s]),
+                                  0ull, static_cast<unsigned long long>(skey));
         if (prev == 0 || prev == skey) {
             atomicAdd(&t.counts[s], count);
             return;
@@ -145,7 +146,6 @@ __global__ void k2_stats_kernel(CellTable table, unsigned long long* sum,
 __global__ void k2_flag_kernel(CellTable table, double mean, double std,
                                float threshold, uint32_t* out_records,
                                uint32_t* out_count) {
-    uint32_t mask = (uint32_t)(TABLE_SLOTS - 1);
     for (uint32_t s = blockIdx.x * blockDim.x + threadIdx.x; s < TABLE_SLOTS;
          s += gridDim.x * blockDim.x) {
         uint32_t c = table.counts[s];

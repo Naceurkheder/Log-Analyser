@@ -53,11 +53,21 @@ test: ## Run the python test suite
 # CUDA detector library (Sprint 2)
 # ---------------------------------------------------------------------------
 NVCC ?= $(shell command -v nvcc 2>/dev/null)
-HOST_CXX ?= $(shell command -v g++-14 2>/dev/null || command -v g++)
+# CUDA 12.4 supports host GCC up to 13.x.  Newer host GCC headers (15.x) are
+# rejected by nvcc's front-end, so pick a supported compiler explicitly.
+HOST_CXX ?= $(shell for c in g++-13 g++-14 g++; do command -v $$c 2>/dev/null && break; done)
+# Static libstdc++ keeps the artifacts runnable inside the older Ubuntu containers.
+STATIC_LIBS := -static-libstdc++ -static-libgcc
 
 CXXFLAGS := -O3 -std=c++17 -fPIC -Wall -Wextra
-NVCC_FLAGS := -O3 -std=c++17 -arch=sm_86 -allow-unsupported-compiler \
-              -Xcompiler -fPIC
+# -U_GNU_SOURCE / -D_DEFAULT_SOURCE: glibc >= 2.41 enables the C23
+# cospi()/sinpi()/rsqrt() prototypes under __USE_GNU, and CUDA 12.4's
+# <math_functions.h> declares the same names with a different exception
+# specification.  Dropping the GNU extensions (keeping the POSIX default set
+# that the C++ standard library headers need) sidesteps the clash.
+NVCC_FLAGS := -O3 -std=c++17 -arch=sm_86 -ccbin $(HOST_CXX) \
+              -Xcompiler=-fPIC,-static-libstdc++,-static-libgcc \
+              -U_GNU_SOURCE -D_DEFAULT_SOURCE
 
 BUILD_DIR := build
 
