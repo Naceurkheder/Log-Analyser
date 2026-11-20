@@ -11,16 +11,18 @@ variable "region" {
 }
 
 variable "bucket_names" {
-  description = "Object storage buckets: raw input chunks, build artifacts, results."
+  description = "Object storage buckets used by the ingestion and execution planes."
   type = object({
-    raw       = string
-    artifacts = string
-    results   = string
+    incoming   = string
+    raw_chunks = string
+    artifacts  = string
+    results    = string
   })
   default = {
-    raw       = "raw"
-    artifacts = "artifacts"
-    results   = "results"
+    incoming   = "incoming"
+    raw_chunks = "raw-chunks"
+    artifacts  = "artifacts"
+    results    = "results"
   }
 }
 

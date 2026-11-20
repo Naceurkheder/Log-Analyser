@@ -21,10 +21,13 @@ CONTAINER="${1:-infra}"
 PORT="${2:-4566}"
 VENV=/opt/moto/venv
 
-command -v lxc >/dev/null 2>&1 || { echo "Error: 'lxc' not found" >&2; exit 1; }
-lxc info "$CONTAINER" >/dev/null 2>&1 || { echo "Error: container '$CONTAINER' not found" >&2; exit 1; }
+# shellcheck source=lxd/common.sh
+. "$(dirname "$0")/common.sh"
 
-run() { lxc exec "$CONTAINER" -- "$@"; }
+lxd_require >/dev/null || exit 1
+lxd_instance_exists "$CONTAINER" || { echo "Error: container '$CONTAINER' not found in project '$PROJECT'" >&2; exit 1; }
+
+run() { lxd_exec "$CONTAINER" "$@"; }
 
 echo ">>> [$CONTAINER] installing system packages"
 run apt-get update -qq
@@ -56,7 +59,7 @@ run systemctl enable --now sentinel-moto.service
 # Wait for the API to answer
 echo -n ">>> waiting for http://$CONTAINER:$PORT"
 for _ in $(seq 1 30); do
-    if lxc exec "$CONTAINER" -- bash -c "curl -sf http://127.0.0.1:$PORT/moto-api/ >/dev/null" 2>/dev/null; then
+    if lxd_exec "$CONTAINER" bash -c "curl -sf http://127.0.0.1:$PORT/moto-api/ >/dev/null" 2>/dev/null; then
         echo " OK"
         exit 0
     fi

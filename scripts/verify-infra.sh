@@ -3,9 +3,12 @@
 # scripts/verify-infra.sh — Acceptance check for the emulated-AWS plane.
 #
 # Confirms, from the HOST (cross-container, never only from inside `infra`):
-#   - 3 buckets: raw / artifacts / results
-#   - 2 queues: jobs / jobs-dlq, with redrive policy maxReceiveCount=3
-#   - 2 tables: jobs / alerts
+#   - 4 buckets: incoming / raw-chunks / artifacts / results
+#   - 3 queues with DLQs and redrive policy maxReceiveCount=3
+#   - 3 tables: SentinelRuns / SentinelJobs / SentinelAlerts
+#   - run_id GSIs on SentinelJobs and SentinelAlerts
+#
+# Exit code: 0 when every check passes, 1 otherwise.
 
 set -uo pipefail
 
@@ -24,8 +27,9 @@ fail() { echo "  FAIL  $*"; FAIL=1; }
 echo "== verifying emulated AWS at $ENDPOINT =="
 
 # --- buckets ---
-for b in raw artifacts results; do
-    if awsx s3 ls 2>/dev/null | awk '{print $3}' | grep -qx "$b"; then
+buckets="$(awsx s3api list-buckets --query 'Buckets[].Name' --output text 2>/dev/null || echo '')"
+for b in incoming raw-chunks artifacts results; do
+    if echo "$buckets" | tr '\t' '\n' | grep -qx "$b"; then
         pass "bucket '$b' exists"
     else
         fail "bucket '$b' missing"
@@ -33,38 +37,61 @@ for b in raw artifacts results; do
 done
 
 # --- queues + redrive policy ---
-queues_json="$(awsx sqs list-queues 2>/dev/null || echo '{}')"
-for q in jobs jobs-dlq; do
-    if echo "$queues_json" | grep -q "/$q\""; then
-        pass "queue '$q' exists"
-    else
+for q in ingest-queue jobs-gpu jobs-cpu; do
+    case "$q" in
+        ingest-queue) dlq="ingest-dlq" ;;
+        *)            dlq="$q-dlq" ;;
+    esac
+    url="$(awsx sqs get-queue-url --queue-name "$q" --query 'QueueUrl' --output text 2>/dev/null || true)"
+    if [[ -z "$url" ]]; then
         fail "queue '$q' missing"
+        continue
+    fi
+    pass "queue '$q' exists"
+
+    dlq_url="$(awsx sqs get-queue-url --queue-name "$dlq" --query 'QueueUrl' --output text 2>/dev/null || true)"
+    if [[ -z "$dlq_url" ]]; then
+        fail "queue '$dlq' missing"
+        continue
+    fi
+    pass "queue '$dlq' exists"
+
+    dlq_arn="$(awsx sqs get-queue-attributes --queue-url "$dlq_url" \
+        --attribute-names QueueArn --query 'Attributes.QueueArn' --output text 2>/dev/null || true)"
+    redrive="$(awsx sqs get-queue-attributes --queue-url "$url" \
+        --attribute-names RedrivePolicy --query 'Attributes.RedrivePolicy' --output text 2>/dev/null || true)"
+
+    if [[ -n "$dlq_arn" ]] && echo "$redrive" | grep -q "$dlq_arn"; then
+        pass "  $q -> $dlq redrive wired"
+    else
+        fail "  redrive policy missing or not pointing at $dlq (got: $redrive)"
+    fi
+    if echo "$redrive" | grep -Eq '"maxReceiveCount": *3'; then
+        pass "  maxReceiveCount = 3"
+    else
+        fail "  maxReceiveCount != 3 (got: $redrive)"
     fi
 done
 
-dlq_arn="$(awsx sqs get-queue-attributes --queue-url "$ENDPOINT/000000000000/jobs-dlq" \
-    --attribute-names QueueArn --query 'Attributes.QueueArn' --output text 2>/dev/null)"
-redrive="$(awsx sqs get-queue-attributes --queue-url "$ENDPOINT/000000000000/jobs" \
-    --attribute-names RedrivePolicy --query 'Attributes.RedrivePolicy' --output text 2>/dev/null)"
-
-if echo "$redrive" | grep -q "$dlq_arn"; then
-    pass "jobs -> jobs-dlq redrive policy wired (dlq arn: $dlq_arn)"
-else
-    fail "redrive policy missing or not pointing at jobs-dlq (got: $redrive)"
-fi
-if echo "$redrive" | grep -Eq '"maxReceiveCount": *3'; then
-    pass "maxReceiveCount = 3"
-else
-    fail "maxReceiveCount != 3 (got: $redrive)"
-fi
-
-# --- tables ---
+# --- tables + indexes ---
 tables_json="$(awsx dynamodb list-tables --query 'TableNames' --output text 2>/dev/null || echo '')"
-for t in jobs alerts; do
-    if echo "$tables_json" | grep -qw "$t"; then
-        pass "table '$t' exists"
-    else
+for t in SentinelRuns SentinelJobs SentinelAlerts; do
+    if ! echo "$tables_json" | tr '\t' '\n' | grep -qx "$t"; then
         fail "table '$t' missing"
+        continue
+    fi
+    pass "table '$t' exists"
+
+    if [[ "$t" == "SentinelRuns" ]]; then
+        continue
+    fi
+
+    gsis="$(awsx dynamodb describe-table --table-name "$t" \
+        --query 'Table.GlobalSecondaryIndexes[].IndexName' --output text 2>/dev/null || true)"
+    if echo "$gsis" | tr '\t' '\n' | grep -qx "run_id-index"; then
+        pass "  $t.run_id-index exists"
+    else
+        fail "  $t.run_id-index missing (got: $gsis)"
     fi
 done
 
