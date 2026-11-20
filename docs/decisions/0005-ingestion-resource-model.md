@@ -35,9 +35,14 @@ hard-coded `lxc exec` happened to work; anything using the array did not.
   * queues `ingest-queue`/`ingest-dlq`, `jobs-gpu`/`jobs-gpu-dlq`,
     `jobs-cpu`/`jobs-cpu-dlq`, all with `maxReceiveCount = 3`;
   * tables `SentinelRuns` (`run_id`), `SentinelJobs` (`job_id`, GSI
-    `run_id-index`), `SentinelAlerts` (`alert_id`, GSI `run_id-index`).
+    `run_id-index` with range key `job_id`), `SentinelAlerts` (`alert_id`,
+    GSI `run_id-index` with range key `alert_id`).
 * Terraform is split into `buckets.tf`, `queues.tf`, `tables.tf`,
   `outputs.tf`, keeping the provider in `main.tf`.
+* The GSI range keys are the item ids, not timestamps: DynamoDB only
+  guarantees order inside a hash key when a sort key exists, and the API must
+  paginate deterministically. Alerts therefore page in `alert_id` order
+  (content-addressed, stable) rather than insertion order.
 * Visibility timeouts are 300 s for ingest/job queues until Sprint 6 measures
   real job durations and tunes them together with heartbeat intervals.
 * Queue message retention: 4 days for job queues, 1 day for ingestion, 14 days

@@ -93,6 +93,15 @@ for t in SentinelRuns SentinelJobs SentinelAlerts; do
     else
         fail "  $t.run_id-index missing (got: $gsis)"
     fi
+
+    rng="$(awsx dynamodb describe-table --table-name "$t" \
+        --query 'Table.GlobalSecondaryIndexes[0].KeySchema[1].AttributeName' \
+        --output text 2>/dev/null || true)"
+    if [[ "$rng" == "job_id" || "$rng" == "alert_id" ]]; then
+        pass "  $t.run_id-index has range key $rng"
+    else
+        fail "  $t.run_id-index has no deterministic range key (got: $rng)"
+    fi
 done
 
 echo
