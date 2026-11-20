@@ -6,7 +6,9 @@
 #   SentinelAlerts  deduplicated alert metadata (+ run_id GSI)
 #
 # The GSIs are projections of the pagination queries served by the API; keep
-# the key names in sync with src/sentinel/api/store.py.
+# the key names in sync with src/sentinel/api/store.py.  They carry the item's
+# own id as range key so page order is deterministic (DynamoDB gives no
+# ordering guarantee without a sort key).
 # ---------------------------------------------------------------------------
 
 resource "aws_dynamodb_table" "runs" {
@@ -38,6 +40,7 @@ resource "aws_dynamodb_table" "jobs" {
   global_secondary_index {
     name            = "run_id-index"
     hash_key        = "run_id"
+    range_key       = "job_id"
     projection_type = "ALL"
   }
 }
@@ -60,6 +63,7 @@ resource "aws_dynamodb_table" "alerts" {
   global_secondary_index {
     name            = "run_id-index"
     hash_key        = "run_id"
+    range_key       = "alert_id"
     projection_type = "ALL"
   }
 }
