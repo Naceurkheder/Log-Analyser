@@ -43,7 +43,11 @@ dns-check: ## Verify inter-container name resolution from infra
 # Dataset (synthetic — replaces bulk LogHub downloads)
 # ---------------------------------------------------------------------------
 dataset: ## Generate the 100 MB benchmark dataset into data/ (gitignored)
-	python3 scripts/gen_dataset.py --size-mb 100 --out data/bench.log
+	python3 scripts/gen_dataset.py --size-mb 100 --out data/bench.log --labels-out data/bench.labels.json
+
+dataset-labels: ## Generate a small derived dataset plus its ground-truth manifest
+	python3 scripts/gen_dataset.py --lines 20000 --seed 42 --burst-every 80 \
+		--out data/ground-truth.log --labels-out data/ground-truth.labels.json
 
 dataset-sample: ## Regenerate the committed test fixture (fixed seed)
 	python3 scripts/gen_dataset.py --lines 10000 --out tests/fixtures/sample.log
