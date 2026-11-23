@@ -6,7 +6,7 @@ Sentinel-GPU processes large system-log datasets as independent jobs across a he
 
 > **Project status:** Active development. This README describes the target architecture and intended execution model. A component should be considered implemented only when its code, configuration, and corresponding tests are present in the repository.
 
-> **Implemented so far:** Sprints 1–2 are complete (LXD fleet, emulated AWS plane via moto + Terraform, synthetic dataset generator, CUDA kernels + CPU reference, parity tests, benchmark harness). Sprint 3 is in progress: the versioned run API, idempotent submission, paginated status endpoints, operator CLI (`docs/decisions/0006-run-contract.md`), the bounded streaming producer with immutable chunks, manifests, and deterministic jobs (`docs/decisions/0007-streaming-chunker.md`), and deterministic synthetic ground truth in a separate label manifest (`docs/decisions/0008-ground-truth-labels.md`) are implemented and tested.
+> **Implemented so far:** Sprints 1–4 are complete. Sprint 3 delivered the versioned run API, idempotent submission, paginated status endpoints, operator CLI (`docs/decisions/0006-run-contract.md`), the bounded streaming producer with immutable chunks/manifests (`docs/decisions/0007-streaming-chunker.md`), and deterministic synthetic ground truth in a separate label manifest (`docs/decisions/0008-ground-truth-labels.md`). Sprint 4 adds written detector semantics (`docs/algorithm-semantics.md`), a standalone CPU reference with an executable CLI, an exposed native K1/K2 statistics ABI, golden/edge/property tests, and saved baselines (`docs/benchmarks/`). Tag `v0.4-cpu-reference` marks this checkpoint.
 
 ## Quickstart
 
@@ -20,9 +20,11 @@ make infra           # provision emulated AWS resources (idempotent)
 make verify          # assert buckets/queues/tables/redrive wiring
 make dataset         # generate the 100 MB benchmark dataset + labels (fixed seed)
 make dataset-labels  # small derived dataset + separate ground-truth manifest
-make test            # python test suite
+make test            # python test suite (API, producer, CPU reference)
+make test-cpu        # CPU golden/edge/property/native tests
 make test-cpp        # CPU/GPU kernel parity test
 make bench-kernels   # CPU vs GPU 100 MB benchmark + speedup
+make cpu-baseline    # save CPU reference timings + config hash
 make status          # fleet state and resource caps
 ```
 
@@ -31,6 +33,26 @@ The fleet is sized for a 16 GB laptop (6 containers, 5.5 GiB of caps):
 `producer` (streaming chunker), `dashboard`.
 See `docs/decisions/0001-resized-fleet.md`. The dataset is synthetic and
 deterministic — no dataset downloads are required (`docs/decisions/0004-*.md`).
+
+## CPU reference (Sprint 4)
+
+The CPU detector is the correctness oracle for the CUDA port. Its semantics are
+written down in `docs/algorithm-semantics.md`; the Python implementation does
+not import FastAPI, SQS or DynamoDB.
+
+```bash
+make test-cpu                         # golden, edge, property and native tests
+make cpu-cli                          # run over tests/fixtures/sample.log
+python3 -m sentinel.detector.cli detect \
+  --input tests/fixtures/cpu/golden.log \
+  --rules tests/fixtures/cpu/rules.json --native
+make cpu-baseline                     # docs/benchmarks/cpu-baseline.{json,csv}
+```
+
+The native C ABI now also returns K2 `cells`, `mean` and `std`
+(`build/libsentinel_cpu.so`, built by `make lib-cpu`), which lets tests verify
+the statistics stage directly. Saved baselines are described in
+`docs/benchmarks/README.md`.
 
 ## Control API (Sprint 3)
 

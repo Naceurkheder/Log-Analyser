@@ -162,7 +162,7 @@ cpu-cli: ## Run the CPU reference over the sample fixture
 cpu-baseline: ## Save CPU single-thread (and optional threaded) baselines
 	PYTHONPATH=src $(PYTHON) -m sentinel.detector.cli baseline \
 		--input data/bench.log --rules tests/fixtures/cpu/rules.json \
-		--threads 2 --native
+		--threads 2 --native --out-dir docs/benchmarks
 
 api-bootstrap: ## Provision the API service inside the `api` container (once)
 	./lxd/bootstrap-api.sh api

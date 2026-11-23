@@ -1,0 +1,73 @@
+{
+  "algorithm_version": "cpu-reference-v1",
+  "detector": {
+    "baseline_windows": 2,
+    "config_hash": "684584f351452326907d8386373ccf08dad30fd75c14b7cf70c5db92af477696",
+    "max_line_bytes": 65536,
+    "rules": [
+      "auth-failed-password",
+      "auth-invalid-user",
+      "app-error",
+      "http-not-found",
+      "app-segfault"
+    ],
+    "window_seconds": 60,
+    "z_threshold": 3.0
+  },
+  "input": {
+    "bytes": 100007449,
+    "name": "bench.log",
+    "sha256": "bff90c6ec7ac08c43b4e9b63ed65fbf51d0ec1e661b2491e701c64129469c801"
+  },
+  "native": {
+    "anomalies": 3753,
+    "available": true,
+    "cells": 296327,
+    "flagged_lines": 409972,
+    "line_count": 1042705,
+    "mean": 3.518765,
+    "std": 14.01665
+  },
+  "rows": [
+    {
+      "alerts": 3129,
+      "algorithm_version": "cpu-reference-v1",
+      "best_ms": 27085.293,
+      "config_hash": "684584f351452326907d8386373ccf08dad30fd75c14b7cf70c5db92af477696",
+      "features": 84500,
+      "input_bytes": 100007449,
+      "input_name": "bench.log",
+      "line_count": 1042705,
+      "matches": 409972,
+      "mean_ms": 27612.027,
+      "mode": "cpu-reference-single-thread",
+      "repeats": 3,
+      "rules_count": 5,
+      "schema_version": 1,
+      "semantics_doc": "docs/algorithm-semantics.md",
+      "threads": 1,
+      "throughput_mb_s": 3.69
+    },
+    {
+      "alerts": 1553,
+      "algorithm_version": "cpu-reference-v1",
+      "best_ms": 48982.251,
+      "config_hash": "684584f351452326907d8386373ccf08dad30fd75c14b7cf70c5db92af477696",
+      "features": 90674,
+      "input_bytes": 100007449,
+      "input_name": "bench.log",
+      "line_count": 1042705,
+      "matches": 409972,
+      "mean_ms": 49189.8,
+      "mode": "cpu-worker-threaded",
+      "repeats": 3,
+      "rules_count": 5,
+      "schema_version": 1,
+      "semantics_doc": "docs/algorithm-semantics.md",
+      "threads": 2,
+      "throughput_mb_s": 2.04
+    }
+  ],
+  "schema_version": 1,
+  "semantics_doc": "docs/algorithm-semantics.md"
+}

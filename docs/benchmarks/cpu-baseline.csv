@@ -1,0 +1,3 @@
+schema_version,algorithm_version,mode,threads,input_name,input_bytes,line_count,config_hash,rules_count,repeats,best_ms,mean_ms,throughput_mb_s,matches,features,alerts,semantics_doc
+1,cpu-reference-v1,cpu-reference-single-thread,1,bench.log,100007449,1042705,684584f351452326907d8386373ccf08dad30fd75c14b7cf70c5db92af477696,5,3,27085.293,27612.027,3.69,409972,84500,3129,docs/algorithm-semantics.md
+1,cpu-reference-v1,cpu-worker-threaded,2,bench.log,100007449,1042705,684584f351452326907d8386373ccf08dad30fd75c14b7cf70c5db92af477696,5,3,48982.251,49189.8,2.04,409972,90674,1553,docs/algorithm-semantics.md

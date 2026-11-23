@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {"rule_id": "auth-failed-password", "pattern": "Failed password", "severity": "high"},
+    {"rule_id": "auth-invalid-user", "pattern": "Invalid user", "severity": "high"},
+    {"rule_id": "app-error", "pattern": "ERROR", "severity": "medium"},
+    {"rule_id": "http-not-found", "pattern": " 404 ", "severity": "medium"},
+    {"rule_id": "app-segfault", "pattern": "SEGFAULT", "severity": "critical"}
+  ],
+  "window_seconds": 60,
+  "baseline_windows": 2,
+  "z_threshold": 3.0,
+  "max_line_bytes": 65536
+}

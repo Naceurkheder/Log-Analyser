@@ -1,0 +1,826 @@
+{
+  "algorithm_version": "cpu-reference-v1",
+  "config_hash": "684584f351452326907d8386373ccf08dad30fd75c14b7cf70c5db92af477696",
+  "detector": {
+    "baseline_windows": 2,
+    "default_year": 2026,
+    "encoding": "utf-8",
+    "max_line_bytes": 65536,
+    "rules": [
+      {
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "severity": "high"
+      },
+      {
+        "pattern": "Invalid user",
+        "rule_id": "auth-invalid-user",
+        "severity": "high"
+      },
+      {
+        "pattern": "ERROR",
+        "rule_id": "app-error",
+        "severity": "medium"
+      },
+      {
+        "pattern": " 404 ",
+        "rule_id": "http-not-found",
+        "severity": "medium"
+      },
+      {
+        "pattern": "SEGFAULT",
+        "rule_id": "app-segfault",
+        "severity": "critical"
+      }
+    ],
+    "window_seconds": 60,
+    "z_threshold": 3.0
+  },
+  "input": {
+    "bytes": 2131,
+    "name": "golden.log",
+    "sha256": "f8775a35676a545ed52cc91ee4aa7ecaaa2ab6d7647af35bee6b8d999735a0bb"
+  },
+  "native": {
+    "anomalies": 0,
+    "available": true,
+    "cells": 11,
+    "flagged_lines": 22,
+    "line_count": 24,
+    "mean": 2.181818,
+    "std": 3.157046
+  },
+  "reference": {
+    "alerts": [
+      {
+        "alert_id": "alt-f8b3909bc47f08dc28972a04",
+        "algorithm_version": "cpu-reference-v1",
+        "chunk_id": "chk-golden",
+        "count": 3,
+        "created_at": "2026-01-05T03:18:00Z",
+        "ip": 167772161,
+        "line_id_first": "L1927419a2880eaca",
+        "line_ids": [
+          "L1927419a2880eaca",
+          "L50ae5408529cc800",
+          "La88998aaec1d2ab0"
+        ],
+        "mean": 0.5,
+        "rule_id": "auth-failed-password",
+        "run_id": "run-golden",
+        "score": 5.0,
+        "service_id": 1,
+        "severity": "high",
+        "status": 0,
+        "std": 0.5,
+        "window_id": 29459718,
+        "window_seconds": 60
+      },
+      {
+        "alert_id": "alt-3ff2f7e2589ddd7a60d8a4c9",
+        "algorithm_version": "cpu-reference-v1",
+        "chunk_id": "chk-golden",
+        "count": 12,
+        "created_at": "2026-01-05T03:19:00Z",
+        "ip": 167772161,
+        "line_id_first": "L201b88b422ac8d24",
+        "line_ids": [
+          "L201b88b422ac8d24",
+          "L57cbec0df250829d",
+          "L5ae69d595f4cf70f",
+          "L74fb895a2d0dd0be",
+          "L7a92cce07d7f81aa",
+          "L7af6b07ff7821490",
+          "Lc7a56bd8d2ef8907",
+          "Lcce7e1fcaaa0b1ca",
+          "Le7e3f90d0e8d6242",
+          "Leac682cd86c172ce",
+          "Lfb9e3cdd758fac0f",
+          "Lfee9ff2537d45876"
+        ],
+        "mean": 2.0,
+        "rule_id": "auth-failed-password",
+        "run_id": "run-golden",
+        "score": 10.0,
+        "service_id": 1,
+        "severity": "high",
+        "status": 0,
+        "std": 1.0,
+        "window_id": 29459719,
+        "window_seconds": 60
+      }
+    ],
+    "algorithm_version": "cpu-reference-v1",
+    "events": [
+      {
+        "epoch": 1767582720,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L89306ca0af752fb1",
+        "line_no": 1,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459712
+      },
+      {
+        "epoch": 1767582780,
+        "key": [
+          1,
+          167772162,
+          0
+        ],
+        "line_id": "Lc7a70bb18c612b95",
+        "line_no": 2,
+        "rule_id": "auth-invalid-user",
+        "rule_index": 1,
+        "severity": "high",
+        "window_id": 29459713
+      },
+      {
+        "epoch": 1767582840,
+        "key": [
+          3,
+          0,
+          0
+        ],
+        "line_id": "Le04e263392de8550",
+        "line_no": 3,
+        "rule_id": "app-error",
+        "rule_index": 2,
+        "severity": "medium",
+        "window_id": 29459714
+      },
+      {
+        "epoch": 1767582900,
+        "key": [
+          2,
+          3405803783,
+          404
+        ],
+        "line_id": "Lb2e9b79e6ad530d6",
+        "line_no": 4,
+        "rule_id": "http-not-found",
+        "rule_index": 3,
+        "severity": "medium",
+        "window_id": 29459715
+      },
+      {
+        "epoch": 1767582960,
+        "key": [
+          2,
+          167772161,
+          404
+        ],
+        "line_id": "L78db2d0d7ea45843",
+        "line_no": 5,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459716
+      },
+      {
+        "epoch": 1767582960,
+        "key": [
+          2,
+          167772161,
+          404
+        ],
+        "line_id": "L78db2d0d7ea45843",
+        "line_no": 5,
+        "rule_id": "http-not-found",
+        "rule_index": 3,
+        "severity": "medium",
+        "window_id": 29459716
+      },
+      {
+        "epoch": 1767583020,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "Ldbd5a6044bb9079f",
+        "line_no": 8,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459717
+      },
+      {
+        "epoch": 1767583080,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L50ae5408529cc800",
+        "line_no": 9,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459718
+      },
+      {
+        "epoch": 1767583080,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "La88998aaec1d2ab0",
+        "line_no": 10,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459718
+      },
+      {
+        "epoch": 1767583080,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L1927419a2880eaca",
+        "line_no": 11,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459718
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "Lcce7e1fcaaa0b1ca",
+        "line_no": 12,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "Leac682cd86c172ce",
+        "line_no": 13,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L201b88b422ac8d24",
+        "line_no": 14,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L74fb895a2d0dd0be",
+        "line_no": 15,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "Lfb9e3cdd758fac0f",
+        "line_no": 16,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "Le7e3f90d0e8d6242",
+        "line_no": 17,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "Lc7a56bd8d2ef8907",
+        "line_no": 18,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L7af6b07ff7821490",
+        "line_no": 19,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L7a92cce07d7f81aa",
+        "line_no": 20,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L57cbec0df250829d",
+        "line_no": 21,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "L5ae69d595f4cf70f",
+        "line_no": 22,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583140,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "line_id": "Lfee9ff2537d45876",
+        "line_no": 23,
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high",
+        "window_id": 29459719
+      },
+      {
+        "epoch": 1767583200,
+        "key": [
+          3,
+          0,
+          0
+        ],
+        "line_id": "Lc33044d40b6b3f56",
+        "line_no": 24,
+        "rule_id": "app-error",
+        "rule_index": 2,
+        "severity": "medium",
+        "window_id": 29459720
+      },
+      {
+        "epoch": 1767583200,
+        "key": [
+          3,
+          0,
+          0
+        ],
+        "line_id": "Lc33044d40b6b3f56",
+        "line_no": 24,
+        "rule_id": "app-segfault",
+        "rule_index": 4,
+        "severity": "critical",
+        "window_id": 29459720
+      }
+    ],
+    "features": [
+      {
+        "count": 1,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "key_string": "1:167772161:0",
+        "line_ids": [
+          "L89306ca0af752fb1"
+        ],
+        "rule_id": "auth-failed-password",
+        "window_id": 29459712
+      },
+      {
+        "count": 1,
+        "key": [
+          1,
+          167772162,
+          0
+        ],
+        "key_string": "1:167772162:0",
+        "line_ids": [
+          "Lc7a70bb18c612b95"
+        ],
+        "rule_id": "auth-invalid-user",
+        "window_id": 29459713
+      },
+      {
+        "count": 1,
+        "key": [
+          3,
+          0,
+          0
+        ],
+        "key_string": "3:0:0",
+        "line_ids": [
+          "Le04e263392de8550"
+        ],
+        "rule_id": "app-error",
+        "window_id": 29459714
+      },
+      {
+        "count": 1,
+        "key": [
+          2,
+          3405803783,
+          404
+        ],
+        "key_string": "2:3405803783:404",
+        "line_ids": [
+          "Lb2e9b79e6ad530d6"
+        ],
+        "rule_id": "http-not-found",
+        "window_id": 29459715
+      },
+      {
+        "count": 1,
+        "key": [
+          2,
+          167772161,
+          404
+        ],
+        "key_string": "2:167772161:404",
+        "line_ids": [
+          "L78db2d0d7ea45843"
+        ],
+        "rule_id": "auth-failed-password",
+        "window_id": 29459716
+      },
+      {
+        "count": 1,
+        "key": [
+          2,
+          167772161,
+          404
+        ],
+        "key_string": "2:167772161:404",
+        "line_ids": [
+          "L78db2d0d7ea45843"
+        ],
+        "rule_id": "http-not-found",
+        "window_id": 29459716
+      },
+      {
+        "count": 1,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "key_string": "1:167772161:0",
+        "line_ids": [
+          "Ldbd5a6044bb9079f"
+        ],
+        "rule_id": "auth-failed-password",
+        "window_id": 29459717
+      },
+      {
+        "count": 3,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "key_string": "1:167772161:0",
+        "line_ids": [
+          "L1927419a2880eaca",
+          "L50ae5408529cc800",
+          "La88998aaec1d2ab0"
+        ],
+        "rule_id": "auth-failed-password",
+        "window_id": 29459718
+      },
+      {
+        "count": 12,
+        "key": [
+          1,
+          167772161,
+          0
+        ],
+        "key_string": "1:167772161:0",
+        "line_ids": [
+          "L201b88b422ac8d24",
+          "L57cbec0df250829d",
+          "L5ae69d595f4cf70f",
+          "L74fb895a2d0dd0be",
+          "L7a92cce07d7f81aa",
+          "L7af6b07ff7821490",
+          "Lc7a56bd8d2ef8907",
+          "Lcce7e1fcaaa0b1ca",
+          "Le7e3f90d0e8d6242",
+          "Leac682cd86c172ce",
+          "Lfb9e3cdd758fac0f",
+          "Lfee9ff2537d45876"
+        ],
+        "rule_id": "auth-failed-password",
+        "window_id": 29459719
+      },
+      {
+        "count": 1,
+        "key": [
+          3,
+          0,
+          0
+        ],
+        "key_string": "3:0:0",
+        "line_ids": [
+          "Lc33044d40b6b3f56"
+        ],
+        "rule_id": "app-error",
+        "window_id": 29459720
+      },
+      {
+        "count": 1,
+        "key": [
+          3,
+          0,
+          0
+        ],
+        "key_string": "3:0:0",
+        "line_ids": [
+          "Lc33044d40b6b3f56"
+        ],
+        "rule_id": "app-segfault",
+        "window_id": 29459720
+      }
+    ],
+    "matches": [
+      {
+        "line_id": "L89306ca0af752fb1",
+        "line_no": 1,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Lc7a70bb18c612b95",
+        "line_no": 2,
+        "pattern": "Invalid user",
+        "rule_id": "auth-invalid-user",
+        "rule_index": 1,
+        "severity": "high"
+      },
+      {
+        "line_id": "Le04e263392de8550",
+        "line_no": 3,
+        "pattern": "ERROR",
+        "rule_id": "app-error",
+        "rule_index": 2,
+        "severity": "medium"
+      },
+      {
+        "line_id": "Lb2e9b79e6ad530d6",
+        "line_no": 4,
+        "pattern": " 404 ",
+        "rule_id": "http-not-found",
+        "rule_index": 3,
+        "severity": "medium"
+      },
+      {
+        "line_id": "L78db2d0d7ea45843",
+        "line_no": 5,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L78db2d0d7ea45843",
+        "line_no": 5,
+        "pattern": " 404 ",
+        "rule_id": "http-not-found",
+        "rule_index": 3,
+        "severity": "medium"
+      },
+      {
+        "line_id": "Ldbd5a6044bb9079f",
+        "line_no": 8,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L50ae5408529cc800",
+        "line_no": 9,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "La88998aaec1d2ab0",
+        "line_no": 10,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L1927419a2880eaca",
+        "line_no": 11,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Lcce7e1fcaaa0b1ca",
+        "line_no": 12,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Leac682cd86c172ce",
+        "line_no": 13,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L201b88b422ac8d24",
+        "line_no": 14,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L74fb895a2d0dd0be",
+        "line_no": 15,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Lfb9e3cdd758fac0f",
+        "line_no": 16,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Le7e3f90d0e8d6242",
+        "line_no": 17,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Lc7a56bd8d2ef8907",
+        "line_no": 18,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L7af6b07ff7821490",
+        "line_no": 19,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L7a92cce07d7f81aa",
+        "line_no": 20,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L57cbec0df250829d",
+        "line_no": 21,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "L5ae69d595f4cf70f",
+        "line_no": 22,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Lfee9ff2537d45876",
+        "line_no": 23,
+        "pattern": "Failed password",
+        "rule_id": "auth-failed-password",
+        "rule_index": 0,
+        "severity": "high"
+      },
+      {
+        "line_id": "Lc33044d40b6b3f56",
+        "line_no": 24,
+        "pattern": "ERROR",
+        "rule_id": "app-error",
+        "rule_index": 2,
+        "severity": "medium"
+      },
+      {
+        "line_id": "Lc33044d40b6b3f56",
+        "line_no": 24,
+        "pattern": "SEGFAULT",
+        "rule_id": "app-segfault",
+        "rule_index": 4,
+        "severity": "critical"
+      }
+    ],
+    "metrics": {
+      "alerts": 2,
+      "bytes": 2131,
+      "features": 11,
+      "invalid_timestamps": 0,
+      "line_count": 24,
+      "matches": 24,
+      "missing_timestamps": 1
+    }
+  },
+  "schema_version": 1
+}
