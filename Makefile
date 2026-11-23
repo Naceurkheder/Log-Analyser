@@ -59,13 +59,15 @@ test: ## Run the python test suite
 # CUDA detector library (Sprint 2)
 # ---------------------------------------------------------------------------
 NVCC ?= $(shell command -v nvcc 2>/dev/null)
+CMAKE ?= cmake
 # CUDA 12.4 supports host GCC up to 13.x.  Newer host GCC headers (15.x) are
 # rejected by nvcc's front-end, so pick a supported compiler explicitly.
 HOST_CXX ?= $(shell for c in g++-13 g++-14 g++; do command -v $$c 2>/dev/null && break; done)
 # Static libstdc++ keeps the artifacts runnable inside the older Ubuntu containers.
 STATIC_LIBS := -static-libstdc++ -static-libgcc
 
-CXXFLAGS := -O3 -std=c++17 -fPIC -Wall -Wextra
+BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
+CXXFLAGS := -O3 -std=c++17 -fPIC -Wall -Wextra -DSENTINEL_BUILD_ID='"$(BUILD_ID)"'
 # -U_GNU_SOURCE / -D_DEFAULT_SOURCE: glibc >= 2.41 enables the C23
 # cospi()/sinpi()/rsqrt() prototypes under __USE_GNU, and CUDA 12.4's
 # <math_functions.h> declares the same names with a different exception
@@ -77,12 +79,17 @@ NVCC_FLAGS := -O3 -std=c++17 -arch=sm_86 -ccbin $(HOST_CXX) \
 
 BUILD_DIR := build
 
-.PHONY: lib lib-cpu bench-cpu bench-gpu bench-kernels test-cpp clean
+.PHONY: lib lib-cpu bench-cpu bench-gpu bench-kernels test-cpp clean \
+	test-cuda test-cuda-smoke check-cmake-cpu
 
 lib: $(BUILD_DIR)/libsentinel.so ## Build the CUDA detector library
 lib-cpu: $(BUILD_DIR)/libsentinel_cpu.so ## Build the CPU reference library
 
 $(BUILD_DIR)/tokenizer.o: src/common/tokenizer.cpp src/common/tokenizer.h include/sentinel/sentinel.h
+	@mkdir -p $(BUILD_DIR)
+	$(HOST_CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
+
+$(BUILD_DIR)/abi.o: src/common/abi.cpp include/sentinel/sentinel.h
 	@mkdir -p $(BUILD_DIR)
 	$(HOST_CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
 
@@ -100,10 +107,10 @@ $(BUILD_DIR)/backend_gpu.o: src/backend/backend_gpu.c include/sentinel/sentinel.
 $(BUILD_DIR)/backend_cpu.o: src/backend/backend_cpu.c include/sentinel/sentinel.h
 	$(HOST_CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
 
-$(BUILD_DIR)/libsentinel.so: $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/detect_gpu.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/backend_gpu.o
-	$(NVCC) $(NVCC_FLAGS) -shared $^ -o $@ -cudart static
+$(BUILD_DIR)/libsentinel.so: $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/abi.o $(BUILD_DIR)/detect_gpu.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/backend_gpu.o
+	$(NVCC) $(NVCC_FLAGS) -DSENTINEL_BUILD_ID='"$(BUILD_ID)"' -shared $^ -o $@ -cudart static
 
-$(BUILD_DIR)/libsentinel_cpu.so: $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/backend_cpu.o
+$(BUILD_DIR)/libsentinel_cpu.so: $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/abi.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/backend_cpu.o
 	$(HOST_CXX) -shared $^ -o $@
 
 $(BUILD_DIR)/bench_cpu: bench/bench_kernels.cpp $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/detect_cpu.o
@@ -120,6 +127,19 @@ bench-kernels: ## Benchmark 100MB chunk: CPU path vs GPU path (Sprint 2)
 
 test-cpp: $(BUILD_DIR)/test_parity ## CPU/GPU parity test on the fixed fixture
 	$(BUILD_DIR)/test_parity tests/fixtures/sample.log
+
+test-cuda-smoke: ## Build and run the minimal CUDA kernel/ABI smoke test via CMake
+	$(CMAKE) -S . -B $(BUILD_DIR)/cmake-cuda -DSENTINEL_ENABLE_CUDA=ON \
+		-DCMAKE_CUDA_COMPILER=$(NVCC) -DCMAKE_CUDA_HOST_COMPILER=$(HOST_CXX)
+	$(CMAKE) --build $(BUILD_DIR)/cmake-cuda --target sentinel_cuda_smoke -j2
+	$(BUILD_DIR)/cmake-cuda/sentinel_cuda_smoke
+
+check-cmake-cpu: ## Verify the CPU-only CMake configuration (no CUDA toolkit)
+	$(CMAKE) -S . -B $(BUILD_DIR)/cmake-cpu -DSENTINEL_ENABLE_CUDA=OFF
+	$(CMAKE) --build $(BUILD_DIR)/cmake-cpu -j2
+
+test-cuda: test-cuda-smoke ## CUDA kernel smoke + randomized CPU/GPU K1 parity
+	$(PYTHON) -m pytest tests/cuda -q
 
 $(BUILD_DIR)/test_parity: tests/test_parity.cpp $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/detect_gpu.o
 	$(NVCC) $(NVCC_FLAGS) -Iinclude -Isrc $< $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/detect_gpu.o -o $@ -cudart static

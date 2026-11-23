@@ -23,6 +23,30 @@ extern "C" {
 #define SENTINEL_MAX_PATTERNS 32
 #define SENTINEL_MAX_PATTERN_LEN 63
 
+/* Bumped whenever a struct layout, function signature or semantic contract
+ * changes. Workers must check this before calling any other entry point. */
+#define SENTINEL_ABI_VERSION 2u
+
+/* Stable error codes returned by every entry point. */
+enum {
+    SENTINEL_OK = 0,
+    SENTINEL_ERR_INVALID = -1,
+    SENTINEL_ERR_OOM = -2,
+    SENTINEL_ERR_CUDA = -3,
+    SENTINEL_ERR_UNSUPPORTED = -4
+};
+
+/* Phase timings (milliseconds) and peak device allocation for one call.
+ * CPU-only builds leave every field at zero. */
+typedef struct {
+    uint64_t peak_device_bytes;
+    double alloc_ms;
+    double h2d_ms;
+    double kernel_ms;
+    double d2h_ms;
+    double total_ms;
+} sentinel_timing;
+
 typedef struct {
     const char* patterns[SENTINEL_MAX_PATTERNS];
     uint32_t pattern_count;
@@ -51,6 +75,7 @@ typedef struct {
     uint64_t cells;  /* number of non-empty (ip, bucket, service) cells */
     double mean;     /* exact integer mean of per-cell counts, 0 if no cells */
     double std;      /* population stddev; zero variance yields 0.0 */
+    sentinel_timing timing; /* measured pipeline phases; zero on CPU path */
 } sentinel_results;
 
 /* Shared deterministic tokenizer. Outputs are malloc'd; caller free()s. */
@@ -67,6 +92,10 @@ int sentinel_detect_gpu(const sentinel_input* in, const sentinel_config* cfg,
 
 /* Free results allocated by either backend. Safe on zeroed results. */
 void sentinel_free_results(sentinel_results* out);
+
+/* Version/build identity. Call once before using the rest of the ABI. */
+uint32_t sentinel_abi_version(void);
+const char* sentinel_build_id(void);
 
 #ifdef __cplusplus
 }
