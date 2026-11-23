@@ -108,7 +108,9 @@ extern "C" int sentinel_tokenize(const uint8_t* data, size_t len,
     uint32_t n = 0;
     for (size_t i = 0; i < len; ++i) n += (data[i] == '\n');
 
-    uint32_t* offs = (uint32_t*)malloc(sizeof(uint32_t) * (n + 1));
+    /* n LF-delimited records, plus an optional unterminated final record;
+     * N+1 offsets are needed for N records. */
+    uint32_t* offs = (uint32_t*)malloc(sizeof(uint32_t) * ((size_t)n + 2));
     uint32_t* ips = (uint32_t*)malloc(sizeof(uint32_t) * (n ? n : 1));
     uint16_t* buckets = (uint16_t*)malloc(sizeof(uint16_t) * (n ? n : 1));
     uint8_t* services = (uint8_t*)malloc(sizeof(uint8_t) * (n ? n : 1));
@@ -119,26 +121,30 @@ extern "C" int sentinel_tokenize(const uint8_t* data, size_t len,
 
     uint32_t li = 0;
     size_t start = 0;
-    for (size_t i = 0; i <= len; ++i) {
-        if (i == len || data[i] == '\n') {
-            size_t end = i; /* exclude '\n' */
-            size_t llen = (end > start) ? end - start : 0;
-            const uint8_t* lp = data + start;
+    auto emit_record = [&](size_t end) {
+        size_t llen = (end > start) ? end - start : 0;
+        const uint8_t* lp = data + start;
 
-            uint32_t ip = 0;
-            find_first_ipv4(lp, llen, &ip);
+        uint32_t ip = 0;
+        find_first_ipv4(lp, llen, &ip);
 
-            uint16_t bucket = 0;
-            find_time_bucket(lp, llen, &bucket);
+        uint16_t bucket = 0;
+        find_time_bucket(lp, llen, &bucket);
 
-            offs[li] = (uint32_t)start;
-            ips[li] = ip;
-            buckets[li] = bucket;
-            services[li] = llen ? find_service(lp, llen) : SENTINEL_SERVICE_UNKNOWN;
-            ++li;
-            start = i + 1;
-        }
+        offs[li] = (uint32_t)start;
+        ips[li] = ip;
+        buckets[li] = bucket;
+        services[li] = llen ? find_service(lp, llen)
+                            : (uint8_t)SENTINEL_SERVICE_UNKNOWN;
+        ++li;
+        start = end + 1; /* skip the LF */
+    };
+    /* LF-delimited records. A trailing LF ends the last record; it does not
+     * create an extra empty one. A final unterminated record is included. */
+    for (size_t i = 0; i < len; ++i) {
+        if (data[i] == '\n') emit_record(i);
     }
+    if (start < len) emit_record(len);
     offs[li] = (uint32_t)len;
 
     *line_offsets = offs;
