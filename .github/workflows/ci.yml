@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python-and-infra:
+    # CPU-only CI. GPU/CUDA kernels require a CUDA-capable labelled runner and
+    # are exercised only by the manual gpu-benchmarks.yml workflow.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Pytest (CPU-safe suites available at v0.7)
+        run: >-
+          python -m pytest
+          tests/api tests/producer tests/unit tests/cpu
+          tests/artifacts tests/metrics tests/worker
+          tests/dashboard
+          -q --junitxml=reports/junit.xml
+
+      - name: CMake CPU-only build
+        run: >-
+          cmake -S . -B build/ci-cpu -DSENTINEL_ENABLE_CUDA=OFF
+          && cmake --build build/ci-cpu -j2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform format and validate
+        run: |
+          terraform fmt -check -recursive terraform
+          terraform -chdir=terraform init -backend=false -input=false
+          terraform -chdir=terraform validate -no-color
+
+      - name: Repository hygiene
+        run: bash scripts/check_repo_hygiene.sh
+
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report-py${{ matrix.python-version }}
+          path: reports/junit.xml
+          if-no-files-found: warn
