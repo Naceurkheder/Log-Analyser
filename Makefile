@@ -101,13 +101,17 @@ $(BUILD_DIR)/detect_gpu.o: src/cuda/detect_gpu.cu src/common/tokenizer.h include
 	@mkdir -p $(BUILD_DIR)
 	$(NVCC) $(NVCC_FLAGS) -Iinclude -Isrc/common -c $< -o $@
 
+$(BUILD_DIR)/window_kernels.o: src/cuda/window_kernels.cu include/sentinel/sentinel.h
+	@mkdir -p $(BUILD_DIR)
+	$(NVCC) $(NVCC_FLAGS) -Iinclude -c $< -o $@
+
 $(BUILD_DIR)/backend_gpu.o: src/backend/backend_gpu.c include/sentinel/sentinel.h
 	$(HOST_CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
 
 $(BUILD_DIR)/backend_cpu.o: src/backend/backend_cpu.c include/sentinel/sentinel.h
 	$(HOST_CXX) $(CXXFLAGS) -Iinclude -c $< -o $@
 
-$(BUILD_DIR)/libsentinel.so: $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/abi.o $(BUILD_DIR)/detect_gpu.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/backend_gpu.o
+$(BUILD_DIR)/libsentinel.so: $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/abi.o $(BUILD_DIR)/detect_gpu.o $(BUILD_DIR)/window_kernels.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/backend_gpu.o
 	$(NVCC) $(NVCC_FLAGS) -DSENTINEL_BUILD_ID='"$(BUILD_ID)"' -shared $^ -o $@ -cudart static
 
 $(BUILD_DIR)/libsentinel_cpu.so: $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/abi.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/backend_cpu.o

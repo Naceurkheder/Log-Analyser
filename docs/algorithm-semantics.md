@@ -121,9 +121,10 @@ here requires a new `algorithm_version` and new golden outputs.
 5. Otherwise `z = (count - mean) / std` computed in IEEE-754 **double** precision.
    An alert is emitted when `z >= z_threshold` (`>=`, not `>`; this matches the
    native K2 comparison). The default threshold is 3.0.
-6. The same rules apply to the native K1/K2 compatibility path described in
-   §7, except that K2 uses its documented whole-input histogram instead of a
-   per-key window history.
+6. The same rules apply to the GPU windowed K2 port described in §7, which
+   consumes the feature rows produced by §4. The separate native K1/K2
+   compatibility path in §7 uses a whole-input histogram instead of a per-key
+   window history; the two K2 variants are intentionally different algorithms.
 
 ## 6. Alerts, IDs and output ordering
 
@@ -178,6 +179,28 @@ tests and benchmarks; it is not the windowed scorer from §5.
   `(bucket, service, ip)`.
 * `sentinel_results` exposes `cells`, `mean` and `std` in addition to flags
   and anomalies so Python can verify the native statistics stage directly.
+
+### 7.1 GPU windowed K2 stage (Sprint 5 / S5-C)
+
+`sentinel_detect_window_gpu` is the CUDA implementation of §§4–6, exposed by
+`src/sentinel/detector/window_native.py`. The worker (or test) supplies bounded
+feature rows `(service, ip, status, window_id, rule_index, event_count)`, where
+`event_count >= 1` and the tuple is the full collision identity. The kernels:
+
+1. open-address a 2²¹-slot table keyed by the **full** tuple and atomically sum
+   `event_count` per identity (overflow returns `SENTINEL_ERR_INVALID`);
+2. build each series' start window on the host from the compact aggregated
+   rows and upload one `int64_t` minimum per row;
+3. for each target window, look up the previous `baseline_windows` windows by
+   the same full tuple, with gaps counted as zero, and apply §5's double math.
+
+Aggregation counts and alert identities are compared **exactly** against the
+Python oracle. Floating-point `mean`, `std` and `score` use
+`abs=1e-6, rel=1e-6`, and every emitted candidate is compared. Alert
+output is sorted by `(window, service, ip, status, rule_index)`; rule index is
+the configured rule order (`r0`, `r1`, …), matching §6's `rule_id` ordering for
+the test rules. The path is GPU-only; there is no CPU native counterpart, so
+the Python reference remains the authority.
 
 ## 8. Reproducibility contract
 
