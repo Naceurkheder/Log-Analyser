@@ -36,3 +36,17 @@ Consequences:
   idempotent fleet tooling (`lxd/fleet.sh`) when reached.
 * Caps are enforced with `limits.memory` + `limits.cpu.allowance` and
   re-asserted on every `make up`.
+
+## Update — 2026-11-22 (Sprint 3)
+
+Sprint 3 reached the point where the control API and the ingest producer are
+needed, so the two deferred containers were added with the same tooling:
+
+| Container | Memory cap | CPU allowance | Role                              |
+|-----------|------------|---------------|-----------------------------------|
+| api       | 512 MiB    | 100%          | control API (10.20.0.11:8080)     |
+| producer  | 512 MiB    | 100%          | streaming chunker / ingest reader |
+
+Total caps are now 5.5 GiB across 6 containers, still inside the 16 GB host
+budget. The GPU/CPU workers and dashboard are unchanged. See
+`docs/decisions/0006-run-contract.md` for the API contract.

@@ -1,0 +1,1216 @@
+{
+  "components": {
+    "schemas": {
+      "AlertPage": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlertSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "count"
+        ],
+        "title": "AlertPage",
+        "type": "object"
+      },
+      "AlertSummary": {
+        "additionalProperties": true,
+        "description": "Alert projection; the full detector schema is owned by Sprint 4.",
+        "properties": {
+          "alert_id": {
+            "title": "Alert Id",
+            "type": "string"
+          },
+          "chunk_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "line_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Id"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timestamp"
+          }
+        },
+        "required": [
+          "alert_id",
+          "run_id"
+        ],
+        "title": "AlertSummary",
+        "type": "object"
+      },
+      "DatasetRef": {
+        "additionalProperties": false,
+        "description": "Immutable reference to a source object in the ``incoming`` bucket.",
+        "examples": [
+          {
+            "bucket": "incoming",
+            "encoding": "utf-8",
+            "format": "text",
+            "key": "datasets/2026-11-20/auth.log",
+            "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+            "size_bytes": 1048576
+          }
+        ],
+        "properties": {
+          "bucket": {
+            "default": "incoming",
+            "maxLength": 63,
+            "minLength": 1,
+            "title": "Bucket",
+            "type": "string"
+          },
+          "encoding": {
+            "default": "utf-8",
+            "enum": [
+              "utf-8",
+              "utf-8-sig",
+              "latin-1"
+            ],
+            "title": "Encoding",
+            "type": "string"
+          },
+          "format": {
+            "const": "text",
+            "default": "text",
+            "title": "Format",
+            "type": "string"
+          },
+          "key": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "DatasetRef",
+        "type": "object"
+      },
+      "DetectorConfig": {
+        "additionalProperties": false,
+        "description": "Bounded detector configuration hashed into every job id.",
+        "examples": [
+          {
+            "baseline_windows": 10,
+            "max_line_bytes": 65536,
+            "rules": [
+              {
+                "pattern": "Failed password",
+                "rule_id": "auth-failed-password",
+                "severity": "high"
+              },
+              {
+                "pattern": "HTTP/1.1\" 5",
+                "rule_id": "http-5xx",
+                "severity": "medium"
+              }
+            ],
+            "window_seconds": 60,
+            "z_threshold": 3.0
+          }
+        ],
+        "properties": {
+          "baseline_windows": {
+            "default": 10,
+            "maximum": 1440.0,
+            "minimum": 1.0,
+            "title": "Baseline Windows",
+            "type": "integer"
+          },
+          "max_line_bytes": {
+            "default": 65536,
+            "maximum": 1048576.0,
+            "minimum": 256.0,
+            "title": "Max Line Bytes",
+            "type": "integer"
+          },
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/DetectorRule"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Rules",
+            "type": "array"
+          },
+          "window_seconds": {
+            "default": 60,
+            "maximum": 3600.0,
+            "minimum": 1.0,
+            "title": "Window Seconds",
+            "type": "integer"
+          },
+          "z_threshold": {
+            "default": 3.0,
+            "exclusiveMinimum": 0.0,
+            "maximum": 1000.0,
+            "title": "Z Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "rules"
+        ],
+        "title": "DetectorConfig",
+        "type": "object"
+      },
+      "DetectorRule": {
+        "additionalProperties": false,
+        "description": "One stable pattern rule; ``rule_id`` is part of the run contract.",
+        "properties": {
+          "pattern": {
+            "minLength": 1,
+            "title": "Pattern",
+            "type": "string"
+          },
+          "rule_id": {
+            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "severity": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_id",
+          "pattern"
+        ],
+        "title": "DetectorRule",
+        "type": "object"
+      },
+      "ErrorInfo": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
+        "title": "ErrorInfo",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorInfo"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "JobPage": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/JobSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "count"
+        ],
+        "title": "JobPage",
+        "type": "object"
+      },
+      "JobSummary": {
+        "additionalProperties": true,
+        "description": "Pagination-safe job projection (attempts are summarised, not embedded).",
+        "properties": {
+          "attempts": {
+            "default": 0,
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "backend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Backend"
+          },
+          "chunk_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Id"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "PENDING",
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "job_id",
+          "run_id"
+        ],
+        "title": "JobSummary",
+        "type": "object"
+      },
+      "Links": {
+        "properties": {
+          "alerts": {
+            "title": "Alerts",
+            "type": "string"
+          },
+          "jobs": {
+            "title": "Jobs",
+            "type": "string"
+          },
+          "run": {
+            "title": "Run",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run",
+          "jobs",
+          "alerts"
+        ],
+        "title": "Links",
+        "type": "object"
+      },
+      "LivenessResponse": {
+        "properties": {
+          "status": {
+            "const": "ok",
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "LivenessResponse",
+        "type": "object"
+      },
+      "Progress": {
+        "properties": {
+          "alerts_total": {
+            "default": 0,
+            "title": "Alerts Total",
+            "type": "integer"
+          },
+          "jobs_completed": {
+            "default": 0,
+            "title": "Jobs Completed",
+            "type": "integer"
+          },
+          "jobs_failed": {
+            "default": 0,
+            "title": "Jobs Failed",
+            "type": "integer"
+          },
+          "jobs_total": {
+            "default": 0,
+            "title": "Jobs Total",
+            "type": "integer"
+          }
+        },
+        "title": "Progress",
+        "type": "object"
+      },
+      "ReadinessResponse": {
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Checks",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "title": "ReadinessResponse",
+        "type": "object"
+      },
+      "RunCreatedResponse": {
+        "properties": {
+          "created": {
+            "description": "False when an existing run was returned for the same idempotency key.",
+            "title": "Created",
+            "type": "boolean"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "QUEUED",
+              "CHUNKING",
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED",
+              "INGEST_FAILED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "schema_version",
+          "status",
+          "created",
+          "created_at",
+          "links"
+        ],
+        "title": "RunCreatedResponse",
+        "type": "object"
+      },
+      "RunRequest": {
+        "additionalProperties": false,
+        "description": "Control request for a new run (raw log contents are rejected).",
+        "examples": [
+          {
+            "backend_policy": "gpu",
+            "dataset": {
+              "bucket": "incoming",
+              "encoding": "utf-8",
+              "format": "text",
+              "key": "datasets/2026-11-20/auth.log",
+              "sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+              "size_bytes": 1048576
+            },
+            "detector": {
+              "baseline_windows": 10,
+              "max_line_bytes": 65536,
+              "rules": [
+                {
+                  "pattern": "Failed password",
+                  "rule_id": "auth-failed-password",
+                  "severity": "high"
+                },
+                {
+                  "pattern": "HTTP/1.1\" 5",
+                  "rule_id": "http-5xx",
+                  "severity": "medium"
+                }
+              ],
+              "window_seconds": 60,
+              "z_threshold": 3.0
+            },
+            "schema_version": 1
+          }
+        ],
+        "properties": {
+          "backend_policy": {
+            "default": "auto",
+            "enum": [
+              "gpu",
+              "cpu",
+              "auto"
+            ],
+            "title": "Backend Policy",
+            "type": "string"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetRef"
+          },
+          "detector": {
+            "$ref": "#/components/schemas/DetectorConfig"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dataset",
+          "detector"
+        ],
+        "title": "RunRequest",
+        "type": "object"
+      },
+      "RunStatusResponse": {
+        "properties": {
+          "backend_policy": {
+            "enum": [
+              "gpu",
+              "cpu",
+              "auto"
+            ],
+            "title": "Backend Policy",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetRef"
+          },
+          "detector": {
+            "$ref": "#/components/schemas/DetectorConfig"
+          },
+          "detector_config_hash": {
+            "title": "Detector Config Hash",
+            "type": "string"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/Progress"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "PENDING",
+              "QUEUED",
+              "CHUNKING",
+              "RUNNING",
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED",
+              "INGEST_FAILED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "schema_version",
+          "status",
+          "backend_policy",
+          "created_at",
+          "updated_at",
+          "dataset",
+          "detector",
+          "detector_config_hash",
+          "progress",
+          "links"
+        ],
+        "title": "RunStatusResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Control API for the Sentinel-GPU log-analysis pipeline.\n\n* Submit a run with `POST /v1/runs`; the body carries **object references and\n  detector configuration only**, never raw log lines.\n* `Idempotency-Key` is mandatory. Repeating a key with the same payload returns\n  the original run; reusing it with a different payload is rejected with `409`.\n* Jobs and alerts are served as cursor-paginated pages (DynamoDB\n  `run_id-index`), so responses stay bounded.",
+    "title": "Sentinel-GPU API",
+    "version": "0.3.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivenessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Process liveness",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            },
+            "description": "Not ready"
+          }
+        },
+        "summary": "Dependency readiness",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/v1/runs": {
+      "post": {
+        "description": "Validate the dataset reference and detector configuration, then record the run. The response is `201` for a new run and `200` when the same Idempotency-Key and payload are replayed.",
+        "operationId": "create_run_v1_runs_post",
+        "parameters": [
+          {
+            "description": "Stable client key (8-128 chars) for retry-safe creation.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Stable client key (8-128 chars) for retry-safe creation.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCreatedResponse"
+                }
+              }
+            },
+            "description": "Run created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request or cursor"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unknown run"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Idempotency key reuse"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Schema or reference validation"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dependency unavailable"
+          }
+        },
+        "summary": "Create or retrieve an idempotent run",
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/v1/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_v1_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request or cursor"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unknown run"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Idempotency key reuse"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Schema or reference validation"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dependency unavailable"
+          }
+        },
+        "summary": "Run status and aggregate progress",
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/v1/runs/{run_id}/alerts": {
+      "get": {
+        "operationId": "list_alerts_v1_runs__run_id__alerts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque page cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque page cursor",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request or cursor"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unknown run"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Idempotency key reuse"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Schema or reference validation"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dependency unavailable"
+          }
+        },
+        "summary": "Paginated alerts for a run",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
+    "/v1/runs/{run_id}/jobs": {
+      "get": {
+        "operationId": "list_jobs_v1_runs__run_id__jobs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque page cursor",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque page cursor",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Invalid request or cursor"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unknown run"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Idempotency key reuse"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Schema or reference validation"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Dependency unavailable"
+          }
+        },
+        "summary": "Paginated job status for a run",
+        "tags": [
+          "jobs"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Run creation, idempotency, status",
+      "name": "runs"
+    },
+    {
+      "description": "Paginated job projections",
+      "name": "jobs"
+    },
+    {
+      "description": "Paginated alert projections",
+      "name": "alerts"
+    },
+    {
+      "description": "Liveness and readiness",
+      "name": "health"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ Sentinel-GPU processes large system-log datasets as independent jobs across a he
 
 > **Project status:** Active development. This README describes the target architecture and intended execution model. A component should be considered implemented only when its code, configuration, and corresponding tests are present in the repository.
 
-> **Implemented so far (Sprints 1–2):** LXD fleet, emulated AWS plane (S3/SQS/DynamoDB via moto) with Terraform, synthetic dataset generator, CUDA detection kernels + CPU reference, parity tests and benchmark harness. Sprint status detail: `docs/decisions/`.
+> **Implemented so far:** Sprints 1–2 are complete (LXD fleet, emulated AWS plane via moto + Terraform, synthetic dataset generator, CUDA kernels + CPU reference, parity tests, benchmark harness). Sprint 3 is in progress: the versioned run API, idempotent submission, paginated status endpoints, and operator CLI are implemented and tested (`docs/decisions/0006-run-contract.md`).
 
 ## Quickstart
 
@@ -25,10 +25,51 @@ make bench-kernels   # CPU vs GPU 100 MB benchmark + speedup
 make status          # fleet state and resource caps
 ```
 
-The fleet is sized for a 16 GB laptop (4 containers, 4.6 GiB of caps):
-`infra` (emulated AWS), `gpu-worker-1`, `cpu-worker-1`, `dashboard`.
+The fleet is sized for a 16 GB laptop (6 containers, 5.5 GiB of caps):
+`infra` (emulated AWS), `gpu-worker-1`, `cpu-worker-1`, `api` (control API),
+`producer` (streaming chunker), `dashboard`.
 See `docs/decisions/0001-resized-fleet.md`. The dataset is synthetic and
 deterministic — no dataset downloads are required (`docs/decisions/0004-*.md`).
+
+## Control API (Sprint 3)
+
+The API is the platform boundary. It accepts object references and detector
+configuration — never raw log contents — records an idempotent run, and
+publishes an ingest message. Large data moves through S3/SQS.
+
+```bash
+make api                 # local uvicorn on http://127.0.0.1:8000
+curl -s localhost:8000/healthz
+curl -s localhost:8000/readyz
+
+# Upload + submit in one step (creates data/bench.log if missing)
+make dataset
+PYTHONPATH=src .venv/bin/python -m sentinel.api.cli submit-file \
+    data/bench.log --pattern "Failed password" --backend gpu \
+    --api-url http://127.0.0.1:8000
+
+# Inspect the run (use the run_id printed above)
+PYTHONPATH=src .venv/bin/python -m sentinel.api.cli status run_...
+PYTHONPATH=src .venv/bin/python -m sentinel.api.cli jobs   run_... --limit 50
+PYTHONPATH=src .venv/bin/python -m sentinel.api.cli alerts run_... --limit 50
+```
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/runs` | Create or replay an idempotent run (`Idempotency-Key` header required) |
+| `GET /v1/runs/{run_id}` | Run status and aggregate progress |
+| `GET /v1/runs/{run_id}/jobs` | Cursor-paginated jobs (`limit`, `cursor`) |
+| `GET /v1/runs/{run_id}/alerts` | Cursor-paginated alerts (`limit`, `cursor`) |
+| `GET /healthz` / `GET /readyz` | Liveness / dependency readiness |
+
+Repeating the same `Idempotency-Key` with the same payload returns the original
+run (`200`); reusing it with a different payload is rejected (`409`). The
+committed OpenAPI document is `docs/api/openapi.json`; regenerate it with
+`make api-openapi`.
+
+To run the API inside the fleet: `make api-bootstrap` (one-time provisioning)
+then `make api-deploy` (push code + restart). The service listens on
+`10.20.0.11:8080` and is probed by `deploy-api.sh` through `/healthz`.
 
 ## Overview
 
@@ -39,7 +80,7 @@ Core engineering objectives:
 - **GPU computing:** hand-written CUDA kernels for parallel pattern matching and sliding-window anomaly statistics.
 - **Distributed execution:** asynchronous jobs, capability-aware queues, worker leases, heartbeats, retries, and dead-letter queues.
 - **Correctness:** a CPU reference implementation with deterministic output semantics for validating CUDA results.
-- **Infrastructure as code:** Terraform-managed S3, SQS, and DynamoDB resources through LocalStack for local development.
+- **Infrastructure as code:** Terraform-managed S3, SQS, and DynamoDB resources through moto for local development.
 - **Isolation:** independently operated services connected over a private LXD network.
 - **Observability:** metrics and dashboards for queue health, processing latency, throughput, worker status, and evaluation results.
 - **Reproducibility:** versioned detector artifacts, immutable input chunks, checksums, explicit configurations, and repeatable benchmarks.
@@ -73,7 +114,7 @@ Build and provisioning tasks are separate from job execution. Workers consume a 
 | CPU worker | Runs the equivalent CPU path for baseline measurements, fallback policies, and correctness comparison. |
 | Metadata store | Persists run state, job state, attempt metadata, and alert records. |
 
-The local deployment uses LocalStack to provide S3-, SQS-, and DynamoDB-compatible APIs. Application components communicate through service endpoints and APIs rather than shared process memory or a shared application filesystem.
+The local deployment uses moto to provide S3-, SQS-, and DynamoDB-compatible APIs. Application components communicate through service endpoints and APIs rather than shared process memory or a shared application filesystem.
 
 ### Observability plane
 
@@ -265,7 +306,7 @@ The key schema and access patterns should be documented alongside the Terraform 
 | Missing or incompatible CUDA artifact | Fail visibly; do not run an unpinned or locally compiled substitute. |
 | CUDA out-of-memory | Release transient buffers, reduce batch size where safe, and retry under a bounded policy. |
 | GPU becomes unavailable | Keep GPU-only work pending or apply an explicitly configured fallback policy. |
-| LocalStack becomes unavailable | Fail health checks, apply bounded retries, and preserve durable work for recovery. |
+| Emulated AWS (moto) becomes unavailable | Fail health checks, apply bounded retries, and preserve durable work for recovery. |
 | Result object written but metadata commit fails | Keep the object attempt-scoped; retry the commit or clean up the unreferenced object later. |
 | Poison message repeatedly fails | Move it to the relevant DLQ and retain diagnostics for inspection. |
 | Dashboard or monitoring service stops | Processing continues; observability is not on the critical execution path. |
@@ -360,7 +401,7 @@ The single-host LXD topology demonstrates service-level concurrency and recovery
 
 ## Security and operational boundaries
 
-- Keep LocalStack, worker metrics, and internal service endpoints on the private network.
+- Keep moto, worker metrics, and internal service endpoints on the private network.
 - Bind development-facing host ports to loopback unless an explicit network security model says otherwise.
 - Use non-production credentials for local emulation and keep secrets out of source control.
 - Validate all API inputs, object references, manifest fields, and queue payloads.
@@ -370,7 +411,7 @@ The single-host LXD topology demonstrates service-level concurrency and recovery
 - Pin build artifacts by version and digest; reject unknown or mismatched artifacts.
 - For a deployment against real AWS, replace local credentials and endpoints with least-privilege IAM roles/policies, private networking, appropriate encryption, and production secret management.
 
-LocalStack is an AWS API emulator for development and testing. Passing tests against LocalStack is not proof that all AWS service behavior, quotas, IAM evaluation, or operational characteristics are identical in a real AWS account.
+moto is an AWS API emulator for development and testing. Passing tests against moto is not proof that all AWS service behavior, quotas, IAM evaluation, or operational characteristics are identical in a real AWS account.
 
 ## Technology stack
 
@@ -378,7 +419,7 @@ LocalStack is an AWS API emulator for development and testing. Passing tests aga
 |---|---|
 | Service isolation | LXD |
 | Infrastructure as code | Terraform |
-| Local AWS-compatible services | LocalStack (S3, SQS, DynamoDB) |
+| Local AWS-compatible services | moto (S3, SQS, DynamoDB) |
 | API | Python, FastAPI |
 | GPU compute | CUDA, C++ |
 | CPU reference | C++ implementation used as the correctness baseline |
@@ -435,7 +476,7 @@ sentinel-gpu/
 
 ## Development roadmap
 
-1. **Infrastructure foundation:** establish the LXD network and service lifecycle; provision the LocalStack buckets, queues, dead-letter queues, and tables with Terraform.
+1. **Infrastructure foundation:** establish the LXD network and service lifecycle; provision the moto buckets, queues, dead-letter queues, and tables with Terraform.
 2. **Detection correctness:** implement the CPU reference, define input/output contracts, and add deterministic tests for matching and window statistics.
 3. **CUDA implementation:** implement and validate the kernels, verify CPU/GPU parity, and measure transfer and kernel costs independently.
 4. **Distributed job execution:** implement the API, producer, outbox, capability queues, worker leases, idempotent commits, retries, and DLQ inspection.
@@ -445,7 +486,7 @@ sentinel-gpu/
 ## Known limitations
 
 - The reference deployment is single-host; host failure stops the entire local environment.
-- LocalStack behavior is not a substitute for integration testing against real AWS before a cloud deployment.
+- The moto emulator is not a substitute for integration testing against real AWS before a cloud deployment.
 - GPU execution is not guaranteed to outperform CPU execution for every dataset size or detector configuration.
 - One physical GPU does not provide hardware-isolated GPU instances merely because multiple processes or containers can access it.
 - Rule matching and statistical thresholds detect only the patterns and behaviors represented by their configuration and training/evaluation data; they are not a general-purpose security detector.
@@ -457,7 +498,6 @@ sentinel-gpu/
 - [NVIDIA CUDA Toolkit Documentation](https://docs.nvidia.com/cuda/)
 - [LXD Documentation](https://documentation.ubuntu.com/lxd/)
 - [Terraform Documentation](https://developer.hashicorp.com/terraform/docs)
-- [LocalStack Documentation](https://docs.localstack.cloud/)
 - [Amazon SQS Developer Guide](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html)
 - [Amazon DynamoDB Developer Guide](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)
 
