@@ -6,7 +6,7 @@ Sentinel-GPU processes large system-log datasets as independent jobs across a he
 
 > **Project status:** Active development. This README describes the target architecture and intended execution model. A component should be considered implemented only when its code, configuration, and corresponding tests are present in the repository.
 
-> **Implemented so far:** Sprints 1–2 are complete (LXD fleet, emulated AWS plane via moto + Terraform, synthetic dataset generator, CUDA kernels + CPU reference, parity tests, benchmark harness). Sprint 3 is in progress: the versioned run API, idempotent submission, paginated status endpoints, and operator CLI are implemented and tested (`docs/decisions/0006-run-contract.md`).
+> **Implemented so far:** Sprints 1–2 are complete (LXD fleet, emulated AWS plane via moto + Terraform, synthetic dataset generator, CUDA kernels + CPU reference, parity tests, benchmark harness). Sprint 3 is in progress: the versioned run API, idempotent submission, paginated status endpoints, operator CLI (`docs/decisions/0006-run-contract.md`), and the bounded streaming producer with immutable chunks, manifests, and deterministic jobs (`docs/decisions/0007-streaming-chunker.md`) are implemented and tested.
 
 ## Quickstart
 
@@ -70,6 +70,35 @@ committed OpenAPI document is `docs/api/openapi.json`; regenerate it with
 To run the API inside the fleet: `make api-bootstrap` (one-time provisioning)
 then `make api-deploy` (push code + restart). The service listens on
 `10.20.0.11:8080` and is probed by `deploy-api.sh` through `/healthz`.
+
+## Streaming producer (Sprint 3-B)
+
+The producer consumes `ingest-queue`, streams the source object in bounded
+blocks, writes immutable chunks and JSON manifests to `raw-chunks`, and creates
+one deterministic `PENDING` job per chunk on `jobs-gpu` or `jobs-cpu`.
+Identifiers and object keys are content-addressed, so duplicate deliveries and
+restarts converge on the same logical chunks and jobs.
+
+```bash
+# Process one poll (default) or keep watching the ingest queue
+PYTHONPATH=src .venv/bin/python -m sentinel.api.cli produce --once
+PYTHONPATH=src .venv/bin/python -m sentinel.api.cli produce --watch --wait 20
+
+# Or via make
+make produce
+```
+
+Behaviour fixed by `docs/decisions/0007-streaming-chunker.md`:
+
+* LF/CRLF/mixed line endings and a final record without `\n` are supported.
+* A chunk boundary never splits a record. A record larger than the chunk target
+  gets its own chunk; a record larger than `max_line_bytes` rejects the run.
+* SHA-256 is computed for the source and every chunk. Manifests and chunk
+  objects are written with create-if-absent semantics and verified on reuse.
+* `chunks/<run-id>/progress.json` checkpoints uploaded chunks; a completed
+  checkpoint lets a restart rebuild jobs without re-reading the source.
+* Job messages contain object references and metadata only, never raw log
+  bytes.
 
 ## Overview
 
@@ -243,6 +272,7 @@ Object keys should be immutable and namespaced by run and chunk identity. A repr
 incoming/<dataset-id>/source.log
 chunks/<run-id>/<chunk-id>/data.bin
 chunks/<run-id>/<chunk-id>/manifest.json
+chunks/<run-id>/progress.json
 artifacts/<artifact-version>/libsentinel.so
 artifacts/<artifact-version>/manifest.json
 results/<run-id>/<job-id>/<attempt-id>/output.jsonl

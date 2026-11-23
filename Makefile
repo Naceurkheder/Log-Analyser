@@ -129,7 +129,7 @@ clean: ## Remove build artifacts
 API_HOST ?= $(if $(SENTINEL_API_HOST),$(SENTINEL_API_HOST),127.0.0.1)
 API_PORT ?= $(if $(SENTINEL_API_PORT),$(SENTINEL_API_PORT),8000)
 
-.PHONY: api api-openapi test-api api-bootstrap api-deploy
+.PHONY: api api-openapi test-api api-bootstrap api-deploy produce test-producer
 
 api: ## Run the control API locally (uvicorn --reload)
 	PYTHONPATH=src $(PYTHON) -m sentinel.api.cli serve --host $(API_HOST) --port $(API_PORT) --reload
@@ -139,6 +139,12 @@ api-openapi: ## Regenerate the committed OpenAPI document
 
 test-api: ## Run only the API contract tests
 	$(PYTHON) -m pytest tests/api -q
+
+produce: ## Poll the ingest queue once and write chunks/manifests/jobs
+	PYTHONPATH=src $(PYTHON) -m sentinel.api.cli produce --once
+
+test-producer: ## Run only the streaming-chunker/producer tests
+	$(PYTHON) -m pytest tests/producer tests/unit/test_chunker.py -q
 
 api-bootstrap: ## Provision the API service inside the `api` container (once)
 	./lxd/bootstrap-api.sh api
