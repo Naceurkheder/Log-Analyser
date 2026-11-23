@@ -1,0 +1,589 @@
+{
+  "burst_every": 60,
+  "generator": {
+    "name": "scripts/gen_dataset.py",
+    "version": "1.0"
+  },
+  "isolation": "This manifest is stored outside the detector input. Do not pass it to workers or include it in run/ingest messages.",
+  "kind": "sentinel.ground-truth",
+  "label_unit": "window",
+  "line_id_policy": {
+    "formula": "L + sha256(source.sha256 + '|' + line_no)[:16]",
+    "line_number_base": 1
+  },
+  "parser_version": "line-v1",
+  "scenarios": [
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.254",
+        "service": "nginx",
+        "status": 404
+      },
+      "kind": "http_404_burst",
+      "line_count": 129,
+      "line_range": {
+        "end": 189,
+        "start": 61
+      },
+      "rule": {
+        "hint": "http_404_burst",
+        "pattern": " 404 "
+      },
+      "scenario_id": "scn-0001",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 11708,
+        "end_utc": "2026-01-05T03:15:08Z",
+        "start_offset_seconds": 11580,
+        "start_utc": "2026-01-05T03:13:00Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:14:00Z",
+        "id": 29459713,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:13:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.245",
+        "service": "nginx",
+        "status": 200
+      },
+      "kind": "event_rate_burst",
+      "line_count": 116,
+      "line_range": {
+        "end": 365,
+        "start": 250
+      },
+      "rule": {
+        "hint": "event_rate_burst",
+        "pattern": "GET /api/v1/status"
+      },
+      "scenario_id": "scn-0002",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 11884,
+        "end_utc": "2026-01-05T03:18:04Z",
+        "start_offset_seconds": 11769,
+        "start_utc": "2026-01-05T03:16:09Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:17:00Z",
+        "id": 29459716,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:16:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.216",
+        "service": "nginx",
+        "status": 200
+      },
+      "kind": "event_rate_burst",
+      "line_count": 78,
+      "line_range": {
+        "end": 503,
+        "start": 426
+      },
+      "rule": {
+        "hint": "event_rate_burst",
+        "pattern": "GET /api/v1/status"
+      },
+      "scenario_id": "scn-0003",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12022,
+        "end_utc": "2026-01-05T03:20:22Z",
+        "start_offset_seconds": 11945,
+        "start_utc": "2026-01-05T03:19:05Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:20:00Z",
+        "id": 29459719,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:19:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.133",
+        "service": "sshd"
+      },
+      "kind": "failed_login_burst",
+      "line_count": 32,
+      "line_range": {
+        "end": 595,
+        "start": 564
+      },
+      "rule": {
+        "hint": "failed_login_burst",
+        "pattern": "Failed password"
+      },
+      "scenario_id": "scn-0004",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12114,
+        "end_utc": "2026-01-05T03:21:54Z",
+        "start_offset_seconds": 12083,
+        "start_utc": "2026-01-05T03:21:23Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:22:00Z",
+        "id": 29459721,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:21:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "service": "app-server"
+      },
+      "kind": "error_code_burst",
+      "line_count": 38,
+      "line_range": {
+        "end": 693,
+        "start": 656
+      },
+      "rule": {
+        "hint": "error_code_burst",
+        "pattern": "ERROR"
+      },
+      "scenario_id": "scn-0005",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12212,
+        "end_utc": "2026-01-05T03:23:32Z",
+        "start_offset_seconds": 12175,
+        "start_utc": "2026-01-05T03:22:55Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:23:00Z",
+        "id": 29459722,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:22:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.151",
+        "service": "sshd"
+      },
+      "kind": "failed_login_burst",
+      "line_count": 34,
+      "line_range": {
+        "end": 787,
+        "start": 754
+      },
+      "rule": {
+        "hint": "failed_login_burst",
+        "pattern": "Failed password"
+      },
+      "scenario_id": "scn-0006",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12306,
+        "end_utc": "2026-01-05T03:25:06Z",
+        "start_offset_seconds": 12273,
+        "start_utc": "2026-01-05T03:24:33Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:25:00Z",
+        "id": 29459724,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:24:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.70",
+        "service": "nginx",
+        "status": 404
+      },
+      "kind": "http_404_burst",
+      "line_count": 139,
+      "line_range": {
+        "end": 986,
+        "start": 848
+      },
+      "rule": {
+        "hint": "http_404_burst",
+        "pattern": " 404 "
+      },
+      "scenario_id": "scn-0007",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12505,
+        "end_utc": "2026-01-05T03:28:25Z",
+        "start_offset_seconds": 12367,
+        "start_utc": "2026-01-05T03:26:07Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:27:00Z",
+        "id": 29459726,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:26:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "service": "app-server"
+      },
+      "kind": "error_code_burst",
+      "line_count": 46,
+      "line_range": {
+        "end": 1092,
+        "start": 1047
+      },
+      "rule": {
+        "hint": "error_code_burst",
+        "pattern": "ERROR"
+      },
+      "scenario_id": "scn-0008",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12611,
+        "end_utc": "2026-01-05T03:30:11Z",
+        "start_offset_seconds": 12566,
+        "start_utc": "2026-01-05T03:29:26Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:30:00Z",
+        "id": 29459729,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:29:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "service": "app-server"
+      },
+      "kind": "error_code_burst",
+      "line_count": 28,
+      "line_range": {
+        "end": 1180,
+        "start": 1153
+      },
+      "rule": {
+        "hint": "error_code_burst",
+        "pattern": "ERROR"
+      },
+      "scenario_id": "scn-0009",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12699,
+        "end_utc": "2026-01-05T03:31:39Z",
+        "start_offset_seconds": 12672,
+        "start_utc": "2026-01-05T03:31:12Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:32:00Z",
+        "id": 29459731,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:31:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.20",
+        "service": "sshd"
+      },
+      "kind": "failed_login_burst",
+      "line_count": 31,
+      "line_range": {
+        "end": 1271,
+        "start": 1241
+      },
+      "rule": {
+        "hint": "failed_login_burst",
+        "pattern": "Failed password"
+      },
+      "scenario_id": "scn-0010",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12790,
+        "end_utc": "2026-01-05T03:33:10Z",
+        "start_offset_seconds": 12760,
+        "start_utc": "2026-01-05T03:32:40Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:33:00Z",
+        "id": 29459732,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:32:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.103",
+        "service": "nginx",
+        "status": 200
+      },
+      "kind": "event_rate_burst",
+      "line_count": 128,
+      "line_range": {
+        "end": 1459,
+        "start": 1332
+      },
+      "rule": {
+        "hint": "event_rate_burst",
+        "pattern": "GET /api/v1/status"
+      },
+      "scenario_id": "scn-0011",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 12978,
+        "end_utc": "2026-01-05T03:36:18Z",
+        "start_offset_seconds": 12851,
+        "start_utc": "2026-01-05T03:34:11Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:35:00Z",
+        "id": 29459734,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:34:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "service": "app-server"
+      },
+      "kind": "error_code_burst",
+      "line_count": 40,
+      "line_range": {
+        "end": 1559,
+        "start": 1520
+      },
+      "rule": {
+        "hint": "error_code_burst",
+        "pattern": "ERROR"
+      },
+      "scenario_id": "scn-0012",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 13078,
+        "end_utc": "2026-01-05T03:37:58Z",
+        "start_offset_seconds": 13039,
+        "start_utc": "2026-01-05T03:37:19Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:38:00Z",
+        "id": 29459737,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:37:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "service": "app-server"
+      },
+      "kind": "error_code_burst",
+      "line_count": 68,
+      "line_range": {
+        "end": 1687,
+        "start": 1620
+      },
+      "rule": {
+        "hint": "error_code_burst",
+        "pattern": "ERROR"
+      },
+      "scenario_id": "scn-0013",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 13206,
+        "end_utc": "2026-01-05T03:40:06Z",
+        "start_offset_seconds": 13139,
+        "start_utc": "2026-01-05T03:38:59Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:39:00Z",
+        "id": 29459738,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:38:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.212",
+        "service": "nginx",
+        "status": 200
+      },
+      "kind": "event_rate_burst",
+      "line_count": 76,
+      "line_range": {
+        "end": 1823,
+        "start": 1748
+      },
+      "rule": {
+        "hint": "event_rate_burst",
+        "pattern": "GET /api/v1/status"
+      },
+      "scenario_id": "scn-0014",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 13342,
+        "end_utc": "2026-01-05T03:42:22Z",
+        "start_offset_seconds": 13267,
+        "start_utc": "2026-01-05T03:41:07Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:42:00Z",
+        "id": 29459741,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:41:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.118",
+        "service": "sshd"
+      },
+      "kind": "failed_login_burst",
+      "line_count": 42,
+      "line_range": {
+        "end": 1925,
+        "start": 1884
+      },
+      "rule": {
+        "hint": "failed_login_burst",
+        "pattern": "Failed password"
+      },
+      "scenario_id": "scn-0015",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 13444,
+        "end_utc": "2026-01-05T03:44:04Z",
+        "start_offset_seconds": 13403,
+        "start_utc": "2026-01-05T03:43:23Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:44:00Z",
+        "id": 29459743,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:43:00Z"
+      }
+    },
+    {
+      "expected": {
+        "evaluation_unit": "window",
+        "label": "anomalous"
+      },
+      "key": {
+        "ip": "203.0.113.151",
+        "service": "sshd"
+      },
+      "kind": "invalid_user_burst",
+      "line_count": 29,
+      "line_range": {
+        "end": 2014,
+        "start": 1986
+      },
+      "rule": {
+        "hint": "invalid_user_burst",
+        "pattern": "Invalid user"
+      },
+      "scenario_id": "scn-0016",
+      "seed": 11,
+      "synthetic": true,
+      "timestamp": {
+        "end_offset_seconds": 13533,
+        "end_utc": "2026-01-05T03:45:33Z",
+        "start_offset_seconds": 13505,
+        "start_utc": "2026-01-05T03:45:05Z"
+      },
+      "window": {
+        "end_utc": "2026-01-05T03:46:00Z",
+        "id": 29459745,
+        "seconds": 60,
+        "start_utc": "2026-01-05T03:45:00Z"
+      }
+    }
+  ],
+  "schema_version": 1,
+  "seed": 11,
+  "source": {
+    "encoding": "utf-8",
+    "line_count": 2014,
+    "name": "eval2000.log",
+    "sha256": "b58ca456e56e0be97a88a9e8d8b86202698510baee24dbccb4af8cb31b3a3b2a",
+    "size_bytes": 205219
+  },
+  "synthetic": true,
+  "window_seconds": 60
+}

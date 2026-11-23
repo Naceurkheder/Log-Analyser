@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "source": "Final verification output of `make bench-kernels` on the integrated mainline; summary transcribed from the harness stdout.",
+  "recorded_at": "2026-11-23",
+  "scope": "native detect() kernel-path benchmark over one fixed 100 MB synthetic chunk",
+  "scope_note": "Kernel-scope timing only. It excludes ingestion, queueing, object storage, worker commit and dashboard overhead. Do not read it as an end-to-end platform speedup.",
+  "workload": {
+    "input_name": "bench.log",
+    "input_bytes": 100007449,
+    "chunk_count": 1,
+    "semantics_doc": "docs/algorithm-semantics.md",
+    "host_and_gpu_profile": "docs/benchmarks/cuda-memory-pipeline.json"
+  },
+  "timings_ms": {
+    "cpu": 2769.1,
+    "gpu": 81.5,
+    "speedup": 34.0
+  },
+  "parity": {
+    "hits_equal": true,
+    "anomalies_equal": true,
+    "logical_outputs_equal": true
+  },
+  "repetitions": 3,
+  "timing_policy": "best time of three repetitions, matching scripts/run_bench.sh",
+  "caveats": [
+    "Best-of-three is reported, not a median or IQR; microbenchmark variance remains possible.",
+    "Generated from a fixed synthetic dataset, not a representative production corpus.",
+    "Equivalent workload scope only; compare kernel time with kernel time, not with end-to-end time.",
+    "The staging/VRAM JSON is a memory diagnostic, not a CPU/GPU speedup result."
+  ]
+}

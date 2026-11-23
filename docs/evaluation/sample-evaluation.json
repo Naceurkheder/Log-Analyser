@@ -1,0 +1,561 @@
+{
+  "coverage_policy": {
+    "closed": "all units in the label scope are labelled; alerts outside the label set are FP and contribute to FPR",
+    "positive-only": "unmatched alerts count as FP relative to known injections; TN/FPR are undefined and render as N/A"
+  },
+  "evaluation_unit": {
+    "description": "one alert/label per (window_id, service_id, ip, status, rule_id); ip is the detector's host-order uint32, service_id uses SERVICE_TAGS",
+    "fields": [
+      "window_id",
+      "service_id",
+      "ip",
+      "status",
+      "rule_id"
+    ]
+  },
+  "inputs": {
+    "detections": {
+      "alert_count": 8,
+      "algorithm_version": "cpu-reference-v1",
+      "match_count": 4,
+      "normalised_prediction_count": 8,
+      "sha256": "3f10e42432ad72e7a0fb2aeec4c77f44afabc86071d01856f2467ce1aaa9a4ea",
+      "window_seconds": 60
+    },
+    "labels": {
+      "adaptation": "scenario key + rule pattern projected to (window_id, service_id, ip, status, rule_id); multi-window scenarios expanded across every touched window",
+      "coverage": "positive-only",
+      "generator": {
+        "name": "scripts/gen_dataset.py",
+        "version": "1.0"
+      },
+      "kind": "sentinel.ground-truth",
+      "label_unit": "window",
+      "normalised_label_count": 17,
+      "scenario_count": 16,
+      "schema_version": 1,
+      "scope": "all_detections",
+      "sha256": "3f74b511a2ebec232510a578106af37295ae5dfa08d289140c9c3249a82ad196",
+      "source": {
+        "encoding": "utf-8",
+        "line_count": 2014,
+        "name": "eval2000.log",
+        "sha256": "b58ca456e56e0be97a88a9e8d8b86202698510baee24dbccb4af8cb31b3a3b2a",
+        "size_bytes": 205219
+      }
+    }
+  },
+  "kind": "sentinel.evaluation-report",
+  "missing": [
+    {
+      "ip": 0,
+      "rule_id": "app-error",
+      "service_id": 3,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459718
+    },
+    {
+      "ip": 0,
+      "rule_id": "app-error",
+      "service_id": 3,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459725
+    },
+    {
+      "ip": 0,
+      "rule_id": "app-error",
+      "service_id": 3,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459731
+    },
+    {
+      "ip": 0,
+      "rule_id": "app-error",
+      "service_id": 3,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459736
+    },
+    {
+      "ip": 0,
+      "rule_id": "app-error",
+      "service_id": 3,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459739
+    },
+    {
+      "ip": 0,
+      "rule_id": "app-error",
+      "service_id": 3,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459743
+    },
+    {
+      "ip": 3405803796,
+      "rule_id": "auth-failed-password",
+      "service_id": 1,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459732
+    },
+    {
+      "ip": 3405803846,
+      "rule_id": "http-not-found",
+      "service_id": 2,
+      "status": 404,
+      "stratum": "synthetic",
+      "window_id": 29459726
+    },
+    {
+      "ip": 3405803846,
+      "rule_id": "http-not-found",
+      "service_id": 2,
+      "status": 404,
+      "stratum": "synthetic",
+      "window_id": 29459727
+    },
+    {
+      "ip": 3405803846,
+      "rule_id": "http-not-found",
+      "service_id": 2,
+      "status": 404,
+      "stratum": "synthetic",
+      "window_id": 29459728
+    },
+    {
+      "ip": 3405803894,
+      "rule_id": "auth-failed-password",
+      "service_id": 1,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459743
+    },
+    {
+      "ip": 3405803909,
+      "rule_id": "auth-failed-password",
+      "service_id": 1,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459721
+    },
+    {
+      "ip": 3405803927,
+      "rule_id": "auth-failed-password",
+      "service_id": 1,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459724
+    },
+    {
+      "ip": 3405803927,
+      "rule_id": "auth-invalid-user",
+      "service_id": 1,
+      "status": 0,
+      "stratum": "synthetic",
+      "window_id": 29459745
+    },
+    {
+      "ip": 3405804030,
+      "rule_id": "http-not-found",
+      "service_id": 2,
+      "status": 404,
+      "stratum": "synthetic",
+      "window_id": 29459713
+    },
+    {
+      "ip": 3405804030,
+      "rule_id": "http-not-found",
+      "service_id": 2,
+      "status": 404,
+      "stratum": "synthetic",
+      "window_id": 29459714
+    },
+    {
+      "ip": 3405804030,
+      "rule_id": "http-not-found",
+      "service_id": 2,
+      "status": 404,
+      "stratum": "synthetic",
+      "window_id": 29459715
+    }
+  ],
+  "schema_version": 1,
+  "strata": {
+    "natural": {
+      "counts": {
+        "evaluation_units": 0,
+        "fn": 0,
+        "fp": 0,
+        "negatives": 0,
+        "positives": 0,
+        "predicted_units": 0,
+        "tn": null,
+        "tp": 0
+      },
+      "coverage": "positive-only",
+      "metrics": {
+        "f1": null,
+        "false_positive_rate": null,
+        "fp_per_10000_units": null,
+        "fp_per_1000_units": null,
+        "precision": null,
+        "recall": null
+      },
+      "missing": {
+        "conflicting_labels": [],
+        "duplicate_predictions": [],
+        "labels_for_predictions": [],
+        "predictions_for_labels": []
+      },
+      "note": "no labels supplied for this stratum; metrics are undefined",
+      "scope": "labelled_units_only",
+      "stratum": "natural",
+      "unresolved": []
+    },
+    "synthetic": {
+      "counts": {
+        "evaluation_units": 21,
+        "fn": 13,
+        "fp": 4,
+        "negatives": 0,
+        "positives": 17,
+        "predicted_units": 8,
+        "tn": null,
+        "tp": 4
+      },
+      "coverage": "positive-only",
+      "metrics": {
+        "f1": 0.32,
+        "false_positive_rate": null,
+        "fp_per_10000_units": 1904.761905,
+        "fp_per_1000_units": 190.47619,
+        "precision": 0.5,
+        "recall": 0.235294
+      },
+      "missing": {
+        "conflicting_labels": [],
+        "duplicate_predictions": [],
+        "labels_for_predictions": [
+          {
+            "ip": 0,
+            "rule_id": "app-error",
+            "service_id": 3,
+            "status": 0,
+            "window_id": 29459718
+          },
+          {
+            "ip": 0,
+            "rule_id": "app-error",
+            "service_id": 3,
+            "status": 0,
+            "window_id": 29459725
+          },
+          {
+            "ip": 0,
+            "rule_id": "app-error",
+            "service_id": 3,
+            "status": 0,
+            "window_id": 29459736
+          },
+          {
+            "ip": 0,
+            "rule_id": "app-error",
+            "service_id": 3,
+            "status": 0,
+            "window_id": 29459743
+          }
+        ],
+        "predictions_for_labels": [
+          {
+            "ip": 3405804030,
+            "rule_id": "http-not-found",
+            "service_id": 2,
+            "status": 404,
+            "window_id": 29459713
+          },
+          {
+            "ip": 3405804030,
+            "rule_id": "http-not-found",
+            "service_id": 2,
+            "status": 404,
+            "window_id": 29459714
+          },
+          {
+            "ip": 3405804030,
+            "rule_id": "http-not-found",
+            "service_id": 2,
+            "status": 404,
+            "window_id": 29459715
+          },
+          {
+            "ip": 3405803909,
+            "rule_id": "auth-failed-password",
+            "service_id": 1,
+            "status": 0,
+            "window_id": 29459721
+          },
+          {
+            "ip": 3405803927,
+            "rule_id": "auth-failed-password",
+            "service_id": 1,
+            "status": 0,
+            "window_id": 29459724
+          },
+          {
+            "ip": 3405803846,
+            "rule_id": "http-not-found",
+            "service_id": 2,
+            "status": 404,
+            "window_id": 29459726
+          },
+          {
+            "ip": 3405803846,
+            "rule_id": "http-not-found",
+            "service_id": 2,
+            "status": 404,
+            "window_id": 29459727
+          },
+          {
+            "ip": 3405803846,
+            "rule_id": "http-not-found",
+            "service_id": 2,
+            "status": 404,
+            "window_id": 29459728
+          },
+          {
+            "ip": 0,
+            "rule_id": "app-error",
+            "service_id": 3,
+            "status": 0,
+            "window_id": 29459731
+          },
+          {
+            "ip": 3405803796,
+            "rule_id": "auth-failed-password",
+            "service_id": 1,
+            "status": 0,
+            "window_id": 29459732
+          },
+          {
+            "ip": 0,
+            "rule_id": "app-error",
+            "service_id": 3,
+            "status": 0,
+            "window_id": 29459739
+          },
+          {
+            "ip": 3405803894,
+            "rule_id": "auth-failed-password",
+            "service_id": 1,
+            "status": 0,
+            "window_id": 29459743
+          },
+          {
+            "ip": 3405803927,
+            "rule_id": "auth-invalid-user",
+            "service_id": 1,
+            "status": 0,
+            "window_id": 29459745
+          }
+        ]
+      },
+      "scope": "all_detections",
+      "stratum": "synthetic",
+      "unresolved": []
+    }
+  },
+  "totals": {
+    "counts": {
+      "evaluation_units": 21,
+      "fn": 13,
+      "fp": 4,
+      "negatives": 0,
+      "positives": 17,
+      "predicted_units": 8,
+      "tn": null,
+      "tp": 4
+    },
+    "coverage": "positive-only",
+    "metrics": {
+      "f1": 0.32,
+      "false_positive_rate": null,
+      "fp_per_10000_units": 1904.761905,
+      "fp_per_1000_units": 190.47619,
+      "precision": 0.5,
+      "recall": 0.235294
+    },
+    "missing": {
+      "conflicting_labels": [],
+      "duplicate_predictions": [],
+      "labels_for_predictions": [
+        {
+          "ip": 0,
+          "rule_id": "app-error",
+          "service_id": 3,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459718
+        },
+        {
+          "ip": 0,
+          "rule_id": "app-error",
+          "service_id": 3,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459725
+        },
+        {
+          "ip": 0,
+          "rule_id": "app-error",
+          "service_id": 3,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459736
+        },
+        {
+          "ip": 0,
+          "rule_id": "app-error",
+          "service_id": 3,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459743
+        }
+      ],
+      "predictions_for_labels": [
+        {
+          "ip": 3405804030,
+          "rule_id": "http-not-found",
+          "service_id": 2,
+          "status": 404,
+          "stratum": "all",
+          "window_id": 29459713
+        },
+        {
+          "ip": 3405804030,
+          "rule_id": "http-not-found",
+          "service_id": 2,
+          "status": 404,
+          "stratum": "all",
+          "window_id": 29459714
+        },
+        {
+          "ip": 3405804030,
+          "rule_id": "http-not-found",
+          "service_id": 2,
+          "status": 404,
+          "stratum": "all",
+          "window_id": 29459715
+        },
+        {
+          "ip": 3405803909,
+          "rule_id": "auth-failed-password",
+          "service_id": 1,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459721
+        },
+        {
+          "ip": 3405803927,
+          "rule_id": "auth-failed-password",
+          "service_id": 1,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459724
+        },
+        {
+          "ip": 3405803846,
+          "rule_id": "http-not-found",
+          "service_id": 2,
+          "status": 404,
+          "stratum": "all",
+          "window_id": 29459726
+        },
+        {
+          "ip": 3405803846,
+          "rule_id": "http-not-found",
+          "service_id": 2,
+          "status": 404,
+          "stratum": "all",
+          "window_id": 29459727
+        },
+        {
+          "ip": 3405803846,
+          "rule_id": "http-not-found",
+          "service_id": 2,
+          "status": 404,
+          "stratum": "all",
+          "window_id": 29459728
+        },
+        {
+          "ip": 0,
+          "rule_id": "app-error",
+          "service_id": 3,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459731
+        },
+        {
+          "ip": 3405803796,
+          "rule_id": "auth-failed-password",
+          "service_id": 1,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459732
+        },
+        {
+          "ip": 0,
+          "rule_id": "app-error",
+          "service_id": 3,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459739
+        },
+        {
+          "ip": 3405803894,
+          "rule_id": "auth-failed-password",
+          "service_id": 1,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459743
+        },
+        {
+          "ip": 3405803927,
+          "rule_id": "auth-invalid-user",
+          "service_id": 1,
+          "status": 0,
+          "stratum": "all",
+          "window_id": 29459745
+        }
+      ]
+    },
+    "stratum": "all"
+  },
+  "unresolved": [
+    {
+      "reason": "scenario could not be adapted: rule pattern 'GET /api/v1/status' maps to 0 rule IDs; provide an explicit rule_id in the label",
+      "scenario_id": "scn-0002",
+      "scope": "label"
+    },
+    {
+      "reason": "scenario could not be adapted: rule pattern 'GET /api/v1/status' maps to 0 rule IDs; provide an explicit rule_id in the label",
+      "scenario_id": "scn-0003",
+      "scope": "label"
+    },
+    {
+      "reason": "scenario could not be adapted: rule pattern 'GET /api/v1/status' maps to 0 rule IDs; provide an explicit rule_id in the label",
+      "scenario_id": "scn-0011",
+      "scope": "label"
+    },
+    {
+      "reason": "scenario could not be adapted: rule pattern 'GET /api/v1/status' maps to 0 rule IDs; provide an explicit rule_id in the label",
+      "scenario_id": "scn-0014",
+      "scope": "label"
+    }
+  ],
+  "window_seconds": 60
+}
