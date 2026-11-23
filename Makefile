@@ -210,3 +210,49 @@ infra-destroy: ## Tear down Terraform-managed emulated AWS resources
 
 verify: ## Verify buckets/queues/tables/redrive from the host
 	./scripts/verify-infra.sh
+
+# ---------------------------------------------------------------------------
+# Read-only Streamlit dashboard (Sprint 7)
+# ---------------------------------------------------------------------------
+DASH_HOST ?= 127.0.0.1
+DASH_PORT ?= 8501
+
+.PHONY: dashboard dashboard-css test-dashboard
+
+dashboard-css: ## Rebuild the committed Tailwind bundle used by the dashboard
+	npx --yes tailwindcss@3.4.17 \
+		-c src/sentinel/dashboard/tailwind.config.js \
+		-i src/sentinel/dashboard/static/tailwind.input.css \
+		-o src/sentinel/dashboard/static/tailwind.css -m
+
+dashboard: ## Run the read-only dashboard, bound to loopback only
+	PYTHONPATH=src $(PYTHON) -m streamlit run dashboard_app.py \
+		--server.address $(DASH_HOST) --server.port $(DASH_PORT) --server.headless true
+
+test-dashboard: ## Run dashboard unit tests
+	PYTHONPATH=src $(PYTHON) -m pytest tests/dashboard -q
+
+# ---------------------------------------------------------------------------
+# One-shot lifecycle helper (install / run / status / close)
+# ---------------------------------------------------------------------------
+SENTINEL_ARGS ?=
+
+.PHONY: install-all run-all status-all close-all restart-all spark-batch
+
+install-all: ## Install Python dependencies, .env and a synthetic dataset
+	bash scripts/sentinel.sh install $(SENTINEL_ARGS)
+
+run-all: ## Start the whole local stack (fleet, AWS, API, workers, dashboard)
+	bash scripts/sentinel.sh run $(SENTINEL_ARGS)
+
+status-all: ## Show managed processes and endpoint health
+	bash scripts/sentinel.sh status $(SENTINEL_ARGS)
+
+close-all: ## Stop managed processes and the LXD fleet
+	bash scripts/sentinel.sh close $(SENTINEL_ARGS)
+
+restart-all: ## Restart managed processes while keeping the LXD fleet
+	bash scripts/sentinel.sh restart $(SENTINEL_ARGS)
+
+spark-batch: ## Run the optional Spark stage (RUN_ID=run_... required)
+	bash scripts/sentinel.sh spark $(SENTINEL_ARGS)
