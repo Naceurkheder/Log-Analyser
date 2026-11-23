@@ -1,0 +1,3 @@
+# Optional Spark batch stage. Deliberately not part of requirements.txt:
+# the API, producer, workers and CPU oracle must run without pyspark installed.
+pyspark>=3.5,<4
