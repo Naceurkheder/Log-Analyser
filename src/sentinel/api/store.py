@@ -71,11 +71,80 @@ class SentinelStore:
         self.sqs = boto3.client("sqs", **kwargs)
         self.dynamodb = boto3.client("dynamodb", **kwargs)
         self._ingest_url: str | None = None
+        self._job_urls: dict[str, str] = {}
 
     # -- object storage -----------------------------------------------------
     def head_dataset(self, bucket: str, key: str) -> int:
         head = self.s3.head_object(Bucket=bucket, Key=key)
         return int(head["ContentLength"])
+
+    def head_object(self, bucket: str, key: str) -> dict[str, Any] | None:
+        try:
+            return self.s3.head_object(Bucket=bucket, Key=key)
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code", "")
+            if code in {"404", "NoSuchKey", "NotFound"}:
+                return None
+            raise
+
+    def open_object(self, bucket: str, key: str) -> tuple[Any, int, str]:
+        """Open a bounded streaming read. The caller closes the returned body."""
+        response = self.s3.get_object(Bucket=bucket, Key=key)
+        return response["Body"], int(response["ContentLength"]), str(
+            response.get("ETag", "").strip('"')
+        )
+
+    def get_object_bytes(self, bucket: str, key: str) -> bytes:
+        return self.s3.get_object(Bucket=bucket, Key=key)["Body"].read()
+
+    def put_immutable(
+        self,
+        bucket: str,
+        key: str,
+        body: bytes,
+        *,
+        metadata: dict[str, str] | None = None,
+        content_type: str = "application/octet-stream",
+    ) -> None:
+        """Write an object whose key is content-addressed.
+
+        ``IfNoneMatch='*'`` turns the write into a create-if-absent operation.
+        Re-running the producer for the same run therefore reuses the first
+        object instead of replacing it; the caller verifies the existing size
+        and metadata before trusting it.
+        """
+        try:
+            self.s3.put_object(
+                Bucket=bucket,
+                Key=key,
+                Body=body,
+                Metadata=metadata or {},
+                ContentType=content_type,
+                IfNoneMatch="*",
+            )
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code", "")
+            if code not in {"PreconditionFailed", "ConditionalRequestConflict"}:
+                raise
+
+    def put_json_immutable(
+        self, bucket: str, key: str, body: bytes, *, metadata: dict[str, str]
+    ) -> None:
+        self.put_immutable(
+            bucket, key, body, metadata=metadata, content_type="application/json"
+        )
+
+    def put_json_overwrite(
+        self, bucket: str, key: str, body: bytes, *, metadata: dict[str, str]
+    ) -> None:
+        """Write a mutable checkpoint/progress document."""
+        self.s3.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=body,
+            Metadata=metadata,
+            ContentType="application/json",
+        )
 
     # -- ingestion queue ----------------------------------------------------
     def ingest_queue_url(self) -> str:
@@ -94,15 +163,36 @@ class SentinelStore:
         )
 
     def send_ingest(self, message: dict[str, Any]) -> None:
+        self._send(self.ingest_queue_url(), message)
+
+    def jobs_queue_url(self, backend: str) -> str:
+        if backend not in self._job_urls:
+            if backend == "gpu":
+                url = self.settings.jobs_gpu_queue_url or self.sqs.get_queue_url(
+                    QueueName=self.settings.jobs_gpu_queue_name
+                )["QueueUrl"]
+            elif backend == "cpu":
+                url = self.settings.jobs_cpu_queue_url or self.sqs.get_queue_url(
+                    QueueName=self.settings.jobs_cpu_queue_name
+                )["QueueUrl"]
+            else:  # pragma: no cover - guarded by the caller
+                raise ValueError(f"unknown backend: {backend}")
+            self._job_urls[backend] = url
+        return self._job_urls[backend]
+
+    def send_job(self, backend: str, message: dict[str, Any]) -> None:
+        self._send(self.jobs_queue_url(backend), message)
+
+    def _send(self, queue_url: str, message: dict[str, Any]) -> None:
         import json
 
         self.sqs.send_message(
-            QueueUrl=self.ingest_queue_url(),
+            QueueUrl=queue_url,
             MessageBody=json.dumps(message, sort_keys=True),
             MessageAttributes={
                 "message_type": {
                     "DataType": "String",
-                    "StringValue": message.get("message_type", "ingest"),
+                    "StringValue": message.get("message_type", "job"),
                 }
             },
         )
@@ -150,6 +240,51 @@ class SentinelStore:
                 k: _serializer.serialize(v) for k, v in values.items()
             },
             ConditionExpression="attribute_exists(run_id)",
+        )
+
+    # -- jobs ---------------------------------------------------------------
+    def create_job(self, job: dict[str, Any]) -> bool:
+        try:
+            self.dynamodb.put_item(
+                TableName=self.settings.jobs_table,
+                Item=to_item(job),
+                ConditionExpression="attribute_not_exists(job_id)",
+            )
+            return True
+        except ClientError as exc:
+            if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                return False
+            raise
+
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        response = self.dynamodb.get_item(
+            TableName=self.settings.jobs_table,
+            Key={"job_id": {"S": job_id}},
+            ConsistentRead=True,
+        )
+        item = response.get("Item")
+        return from_item(item) if item else None
+
+    def update_job(self, job_id: str, **fields: Any) -> None:
+        if not fields:
+            return
+        names: dict[str, str] = {}
+        values: dict[str, Any] = {}
+        parts: list[str] = []
+        for index, (key, value) in enumerate(fields.items()):
+            nk, vk = f"#f{index}", f":v{index}"
+            names[nk] = key
+            values[vk] = _clean(value)
+            parts.append(f"{nk} = {vk}")
+        self.dynamodb.update_item(
+            TableName=self.settings.jobs_table,
+            Key={"job_id": {"S": job_id}},
+            UpdateExpression="SET " + ", ".join(parts),
+            ExpressionAttributeNames=names,
+            ExpressionAttributeValues={
+                k: _serializer.serialize(v) for k, v in values.items()
+            },
+            ConditionExpression="attribute_exists(job_id)",
         )
 
     # -- pagination ---------------------------------------------------------

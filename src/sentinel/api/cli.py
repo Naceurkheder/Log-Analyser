@@ -5,6 +5,7 @@ Usage:
         --key datasets/bench.log
     PYTHONPATH=src python -m sentinel.api.cli submit --request run.json
     PYTHONPATH=src python -m sentinel.api.cli serve --host 0.0.0.0 --port 8000
+    PYTHONPATH=src python -m sentinel.api.cli produce --once
 """
 
 from __future__ import annotations
@@ -233,6 +234,19 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_produce(args: argparse.Namespace) -> int:
+    from ..producer import IngestRunner
+
+    runner = IngestRunner()
+    results = runner.run(
+        once=not args.watch,
+        max_messages=args.max_messages,
+        wait_seconds=args.wait,
+    )
+    print(json.dumps(results, indent=2, sort_keys=True))
+    return 1 if any("error" in item for item in results) else 0
+
+
 def _cmd_openapi(args: argparse.Namespace) -> int:
     from .main import create_app
 
@@ -306,6 +320,23 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--reload", action="store_true")
     serve.add_argument("--log-level", default="info")
     serve.set_defaults(func=_cmd_serve)
+
+    produce = sub.add_parser(
+        "produce", help="consume ingest messages and write chunks/jobs"
+    )
+    produce.add_argument("--once", action="store_true", help="process one batch and exit")
+    produce.add_argument(
+        "--watch",
+        action="store_true",
+        help="keep polling the ingest queue (overrides --once)",
+    )
+    produce.add_argument(
+        "--max-messages", type=int, default=10, help="messages per poll (1-10)"
+    )
+    produce.add_argument(
+        "--wait", type=int, default=0, help="SQS long-poll seconds (0-20)"
+    )
+    produce.set_defaults(func=_cmd_produce)
 
     openapi = sub.add_parser("openapi", help="print or export the OpenAPI document")
     openapi.add_argument("--out", default=None, help="write to a file instead of stdout")

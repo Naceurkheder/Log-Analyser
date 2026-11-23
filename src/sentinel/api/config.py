@@ -10,6 +10,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from ..ids import DEFAULT_ARTIFACT_ID
+
 DEFAULT_ENDPOINT = "http://10.20.0.10:4566"
 DEFAULT_MAX_DATASET_BYTES = 5 * 1024**3  # 5 GiB
 
@@ -41,8 +43,13 @@ class Settings:
     jobs_table: str
     alerts_table: str
     incoming_bucket: str
+    raw_chunks_bucket: str
     ingest_queue_url: str | None
     ingest_queue_name: str
+    jobs_gpu_queue_url: str | None
+    jobs_gpu_queue_name: str
+    jobs_cpu_queue_url: str | None
+    jobs_cpu_queue_name: str
 
     max_dataset_bytes: int
     verify_dataset_object: bool
@@ -50,6 +57,15 @@ class Settings:
     api_url: str
     api_host: str
     api_port: int
+
+    # Producer (S3-B).  The chunk target is a soft limit: a record is never
+    # split, and a record larger than the target gets its own chunk.
+    chunk_prefix: str
+    chunk_target_bytes: int
+    chunk_oversize_policy: str
+    producer_parser_version: str
+    auto_backend: str
+    job_artifact_id: str
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -65,9 +81,22 @@ class Settings:
             jobs_table=os.environ.get("SENTINEL_JOBS_TABLE", "SentinelJobs"),
             alerts_table=os.environ.get("SENTINEL_ALERTS_TABLE", "SentinelAlerts"),
             incoming_bucket=os.environ.get("SENTINEL_INCOMING_BUCKET", "incoming"),
+            raw_chunks_bucket=os.environ.get(
+                "SENTINEL_RAW_CHUNKS_BUCKET", "raw-chunks"
+            ),
             ingest_queue_url=os.environ.get("SENTINEL_INGEST_QUEUE_URL") or None,
             ingest_queue_name=os.environ.get(
                 "SENTINEL_INGEST_QUEUE", "ingest-queue"
+            ),
+            jobs_gpu_queue_url=os.environ.get("SENTINEL_JOBS_GPU_QUEUE_URL")
+            or None,
+            jobs_gpu_queue_name=os.environ.get(
+                "SENTINEL_JOBS_GPU_QUEUE", "jobs-gpu"
+            ),
+            jobs_cpu_queue_url=os.environ.get("SENTINEL_JOBS_CPU_QUEUE_URL")
+            or None,
+            jobs_cpu_queue_name=os.environ.get(
+                "SENTINEL_JOBS_CPU_QUEUE", "jobs-cpu"
             ),
             max_dataset_bytes=_env_int(
                 "SENTINEL_MAX_DATASET_BYTES", DEFAULT_MAX_DATASET_BYTES
@@ -79,4 +108,18 @@ class Settings:
             api_url=os.environ.get("SENTINEL_API_URL", "http://127.0.0.1:8000"),
             api_host=os.environ.get("SENTINEL_API_HOST", "127.0.0.1"),
             api_port=_env_int("SENTINEL_API_PORT", 8000),
+            chunk_prefix=os.environ.get("SENTINEL_CHUNK_PREFIX", "chunks"),
+            chunk_target_bytes=_env_int(
+                "SENTINEL_CHUNK_TARGET_BYTES", 16 * 1024**2
+            ),
+            chunk_oversize_policy=os.environ.get(
+                "SENTINEL_CHUNK_OVERSIZE_POLICY", "reject"
+            ),
+            producer_parser_version=os.environ.get(
+                "SENTINEL_PARSER_VERSION", "sentinel-parser-v1"
+            ),
+            auto_backend=os.environ.get("SENTINEL_AUTO_BACKEND", "gpu"),
+            job_artifact_id=os.environ.get(
+                "SENTINEL_JOB_ARTIFACT_ID", DEFAULT_ARTIFACT_ID
+            ),
         )
