@@ -5,8 +5,10 @@
 # The academic deployment runs a reduced topology (sized to a 16 GB laptop):
 #
 #   infra         1536 MiB   moto (emulated AWS: S3 / SQS / DynamoDB)
-#   gpu-worker-1  1536 MiB   CUDA worker (GPU passthrough arrives in Sprint 5)
+#   gpu-worker-1  1536 MiB   CUDA worker
 #   cpu-worker-1  1024 MiB   CPU reference worker
+#   api            512 MiB   FastAPI run/status API (Sprint 3)
+#   producer       512 MiB   streaming chunker / ingest consumer (Sprint 3)
 #   dashboard      512 MiB   Streamlit presentation layer
 #
 # Terraform runs on the HOST (no dedicated provision container) and targets
@@ -30,18 +32,24 @@ declare -A CONTAINERS=(
     [infra]=1536MiB
     [gpu-worker-1]=1536MiB
     [cpu-worker-1]=1024MiB
+    [api]=512MiB
+    [producer]=512MiB
     [dashboard]=512MiB
 )
 declare -A CPU_ALLOWANCE=(
     [infra]=50%
     [gpu-worker-1]=300%
     [cpu-worker-1]=200%
+    [api]=100%
+    [producer]=100%
     [dashboard]=50%
 )
 declare -A IPV4=(
     [infra]=10.20.0.10
     [gpu-worker-1]=10.20.0.21
     [cpu-worker-1]=10.20.0.22
+    [api]=10.20.0.11
+    [producer]=10.20.0.12
     [dashboard]=10.20.0.23
 )
 

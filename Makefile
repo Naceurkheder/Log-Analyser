@@ -9,6 +9,8 @@ endif
 
 SHELL      := /bin/bash
 FLEET      := ./lxd/fleet.sh
+PYTHON     ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
+TF_DIR     ?= terraform
 
 .DEFAULT_GOAL := help
 .PHONY: help up down status destroy shell dns-check
@@ -47,7 +49,7 @@ dataset-sample: ## Regenerate the committed test fixture (fixed seed)
 	python3 scripts/gen_dataset.py --lines 10000 --out tests/fixtures/sample.log
 
 test: ## Run the python test suite
-	python3 -m pytest tests/ -q
+	$(PYTHON) -m pytest tests/ -q
 
 # ---------------------------------------------------------------------------
 # CUDA detector library (Sprint 2)
@@ -120,6 +122,29 @@ $(BUILD_DIR)/test_parity: tests/test_parity.cpp $(BUILD_DIR)/tokenizer.o $(BUILD
 
 clean: ## Remove build artifacts
 	rm -rf $(BUILD_DIR)
+
+# ---------------------------------------------------------------------------
+# Control API (Sprint 3)
+# ---------------------------------------------------------------------------
+API_HOST ?= $(if $(SENTINEL_API_HOST),$(SENTINEL_API_HOST),127.0.0.1)
+API_PORT ?= $(if $(SENTINEL_API_PORT),$(SENTINEL_API_PORT),8000)
+
+.PHONY: api api-openapi test-api api-bootstrap api-deploy
+
+api: ## Run the control API locally (uvicorn --reload)
+	PYTHONPATH=src $(PYTHON) -m sentinel.api.cli serve --host $(API_HOST) --port $(API_PORT) --reload
+
+api-openapi: ## Regenerate the committed OpenAPI document
+	PYTHONPATH=src $(PYTHON) -m sentinel.api.cli openapi --out docs/api/openapi.json
+
+test-api: ## Run only the API contract tests
+	$(PYTHON) -m pytest tests/api -q
+
+api-bootstrap: ## Provision the API service inside the `api` container (once)
+	./lxd/bootstrap-api.sh api
+
+api-deploy: ## Push the API package into `api` and restart the service
+	./lxd/deploy-api.sh api
 
 # ---------------------------------------------------------------------------
 # Emulated AWS (moto in infra) + Terraform (runs on the host)

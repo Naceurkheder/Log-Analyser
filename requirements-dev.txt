@@ -1,0 +1,5 @@
+# Test/development dependencies (moto is the project's AWS emulator).
+-r requirements.txt
+pytest>=8,<10
+httpx>=0.27,<1
+moto[dynamodb,s3,sqs]>=5,<6
