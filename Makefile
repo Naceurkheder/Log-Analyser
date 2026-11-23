@@ -80,7 +80,7 @@ NVCC_FLAGS := -O3 -std=c++17 -arch=sm_86 -ccbin $(HOST_CXX) \
 BUILD_DIR := build
 
 .PHONY: lib lib-cpu bench-cpu bench-gpu bench-kernels test-cpp clean \
-	test-cuda test-cuda-smoke check-cmake-cpu
+	test-cuda test-cuda-smoke check-cmake-cpu cuda-memory-pipeline
 
 lib: $(BUILD_DIR)/libsentinel.so ## Build the CUDA detector library
 lib-cpu: $(BUILD_DIR)/libsentinel_cpu.so ## Build the CPU reference library
@@ -144,6 +144,9 @@ check-cmake-cpu: ## Verify the CPU-only CMake configuration (no CUDA toolkit)
 
 test-cuda: test-cuda-smoke ## CUDA kernel smoke + randomized CPU/GPU K1 parity
 	$(PYTHON) -m pytest tests/cuda -q
+
+cuda-memory-pipeline: lib ## Bounded VRAM/staging sweep + >VRAM stream evidence
+	PYTHONPATH=src $(PYTHON) scripts/cuda_memory_pipeline.py $(CUDA_MEMORY_ARGS)
 
 $(BUILD_DIR)/test_parity: tests/test_parity.cpp $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/detect_gpu.o
 	$(NVCC) $(NVCC_FLAGS) -Iinclude -Isrc $< $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/detect_cpu.o $(BUILD_DIR)/detect_gpu.o -o $@ -cudart static

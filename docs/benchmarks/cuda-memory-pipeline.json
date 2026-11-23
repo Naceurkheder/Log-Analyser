@@ -1,0 +1,155 @@
+{
+  "abi_doc": "docs/native-abi.md",
+  "algorithm_version": "cpu-reference-v1",
+  "config": {
+    "patterns": [
+      "ERROR",
+      "Failed password",
+      " 404 "
+    ],
+    "stage_sizes_mib": [
+      2,
+      4,
+      8,
+      16
+    ],
+    "z_threshold": 3.0
+  },
+  "gpu": {
+    "driver": "550.163.01",
+    "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "total_vram_mib": 4096
+  },
+  "host_profile": "16g (measured on the development laptop)",
+  "input": {
+    "name": "bench.log",
+    "sha256": "bff90c6ec7ac08c43b4e9b63ed65fbf51d0ec1e661b2491e701c64129469c801"
+  },
+  "large_stream": {
+    "chunks": 272,
+    "host_chunk_mib": 16.0,
+    "input_mib": 4352.0,
+    "input_name": "bench-stream-4g.log",
+    "input_sha256": "ad3bdb2368dc823ecd67a1926ccfa16a3980bdb5e4e7a3afa07947d5fd23b54d",
+    "pattern_marker_lines": 15755881,
+    "peak_reported_device_bytes": 79176221,
+    "phase_totals_ms": {
+      "alloc_ms": 4273.19,
+      "d2h_ms": 189.281,
+      "h2d_ms": 40.476,
+      "kernel_ms": 13.626,
+      "total_ms": 6724.927
+    },
+    "stage_mib": 16,
+    "throughput_mb_s": 54.66,
+    "vram": {
+      "baseline_mib": 79,
+      "peak_mib": 157,
+      "samples": 349
+    },
+    "wall_ms": 79623.777
+  },
+  "micro_batch_sweep": [
+    {
+      "chunks": 48,
+      "host_chunk_mib": 2.0,
+      "input_mib": 95.37,
+      "input_name": "bench.log",
+      "pattern_marker_lines": 345278,
+      "peak_reported_device_bytes": 62196552,
+      "phase_totals_ms": {
+        "alloc_ms": 326.329,
+        "d2h_ms": 8.19,
+        "h2d_ms": 2.035,
+        "kernel_ms": 1.812,
+        "total_ms": 393.785
+      },
+      "stage_mib": 2,
+      "throughput_mb_s": 46.98,
+      "vram": {
+        "baseline_mib": 4,
+        "peak_mib": 121,
+        "samples": 11
+      },
+      "wall_ms": 2030.132
+    },
+    {
+      "chunks": 24,
+      "host_chunk_mib": 4.0,
+      "input_mib": 95.37,
+      "input_name": "bench.log",
+      "pattern_marker_lines": 345278,
+      "peak_reported_device_bytes": 64622054,
+      "phase_totals_ms": {
+        "alloc_ms": 120.707,
+        "d2h_ms": 6.634,
+        "h2d_ms": 1.388,
+        "kernel_ms": 0.927,
+        "total_ms": 185.083
+      },
+      "stage_mib": 4,
+      "throughput_mb_s": 54.51,
+      "vram": {
+        "baseline_mib": 79,
+        "peak_mib": 143,
+        "samples": 10
+      },
+      "wall_ms": 1749.627
+    },
+    {
+      "chunks": 12,
+      "host_chunk_mib": 8.0,
+      "input_mib": 95.37,
+      "input_name": "bench.log",
+      "pattern_marker_lines": 345278,
+      "peak_reported_device_bytes": 69473358,
+      "phase_totals_ms": {
+        "alloc_ms": 102.854,
+        "d2h_ms": 5.311,
+        "h2d_ms": 1.117,
+        "kernel_ms": 0.574,
+        "total_ms": 163.066
+      },
+      "stage_mib": 8,
+      "throughput_mb_s": 56.11,
+      "vram": {
+        "baseline_mib": 79,
+        "peak_mib": 113,
+        "samples": 9
+      },
+      "wall_ms": 1699.74
+    },
+    {
+      "chunks": 6,
+      "host_chunk_mib": 16.0,
+      "input_mib": 95.37,
+      "input_name": "bench.log",
+      "pattern_marker_lines": 345278,
+      "peak_reported_device_bytes": 79176221,
+      "phase_totals_ms": {
+        "alloc_ms": 89.606,
+        "d2h_ms": 4.079,
+        "h2d_ms": 0.924,
+        "kernel_ms": 0.276,
+        "total_ms": 142.498
+      },
+      "stage_mib": 16,
+      "throughput_mb_s": 58.72,
+      "vram": {
+        "baseline_mib": 79,
+        "peak_mib": 157,
+        "samples": 9
+      },
+      "wall_ms": 1624.165
+    }
+  ],
+  "notes": [
+    "Phase timings are CPU-side enqueue/allocation measurements from sentinel_timing; total_ms includes native synchronization, while wall_ms also includes Python file reading, ctypes marshalling and line-flag counting.",
+    "VRAM is sampled externally with nvidia-smi; peak_reported_device_bytes is the library's allocation estimate.",
+    "Each chunk is line-aligned; neither host nor device holds the whole dataset. K2 statistics are per chunk, not global across the stream.",
+    "No CPU/GPU speedup claim is made by this benchmark."
+  ],
+  "oom_retries": 0,
+  "schema_version": 1,
+  "semantics_doc": "docs/algorithm-semantics.md"
+}
