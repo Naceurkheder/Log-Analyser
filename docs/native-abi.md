@@ -73,8 +73,11 @@ windowed Python scorer from Sprint 4 has separate documented semantics
 
 ## 5. Bounded staging and ownership
 
-The GPU path stages raw bytes through one pinned host buffer and one device
-buffer. The default and hard cap for the 16 GB host profile are both 16 MiB;
+The GPU path stages raw bytes through two alternating pinned host/device
+buffer pairs (double buffering). A slot is reused only after a CUDA event
+confirms its previous async copy and kernels have completed; reusing a single
+buffer raced with in-flight DMA on streams longer than two chunks. The default
+and hard cap for the 16 GB host profile are both 16 MiB;
 `SENTINEL_GPU_STAGE_BYTES` is clamped to `[1 MiB, 16 MiB]`. A line is never
 split across staging chunks: the next chunk starts at the first line boundary
 after the byte budget is reached. The worker streams immutable chunks from
