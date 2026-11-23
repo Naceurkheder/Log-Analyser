@@ -130,14 +130,22 @@ extern "C" int sentinel_detect_cpu(const sentinel_input* in,
             ++ncells;
         }
     }
+    /* Expose the baseline statistics even when there are too few cells to
+     * flag anomalies (the Python binding verifies these values). */
+    out->cells = ncells;
+    out->mean = ncells ? (double)sum / (double)ncells : 0.0;
+    {
+        double var = ncells
+            ? (double)sumsq / (double)ncells - out->mean * out->mean : 0.0;
+        out->std = var > 0.0 ? sqrt(var) : 0.0;
+    }
 
     /* ---------------- K2 pass 3: z-score flagging (host double math) */
     out->anomaly_records = nullptr;
     out->anomaly_count = 0;
     if (ncells >= SENTINEL_MIN_CELLS) {
-        double mean = (double)sum / (double)ncells;
-        double var = (double)sumsq / (double)ncells - mean * mean;
-        double std = var > 0.0 ? sqrt(var) : 0.0;
+        const double mean = out->mean;
+        const double std = out->std;
 
         AnomRec* hits = (AnomRec*)malloc(sizeof(AnomRec) * (ncells + 1));
         if (!hits) {

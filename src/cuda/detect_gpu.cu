@@ -345,10 +345,15 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
         CUDA_CHECK(cudaStreamSynchronize(stream));
 
         double mean = 0.0, std = 0.0;
-        if (h_stats[2] >= SENTINEL_MIN_CELLS) {
+        if (h_stats[2]) {
             mean = (double)h_stats[0] / (double)h_stats[2];
             double var = (double)h_stats[1] / (double)h_stats[2] - mean * mean;
             std = var > 0.0 ? sqrt(var) : 0.0;
+        }
+        out->cells = h_stats[2];
+        out->mean = mean;
+        out->std = std;
+        if (h_stats[2] >= SENTINEL_MIN_CELLS) {
             k2_flag_kernel<<<256, 256, 0, stream>>>(
                 table, mean, std, cfg->z_threshold, d_records, d_out_count);
         }

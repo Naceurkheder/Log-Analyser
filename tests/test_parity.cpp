@@ -80,6 +80,9 @@ int main(int argc, char** argv) {
                  sizeof(uint32_t) * in.line_count) == 0,
           "K1 line flags identical (cpu == gpu)");
 
+    CHECK(cpu.cells == gpu.cells, "K2 cell count identical (cpu == gpu)");
+    CHECK(cpu.mean == gpu.mean, "K2 mean identical (cpu == gpu)");
+    CHECK(cpu.std == gpu.std, "K2 stddev identical (cpu == gpu)");
     CHECK(cpu.anomaly_count == gpu.anomaly_count, "K2 anomaly count equal");
     CHECK(cpu.anomaly_count > 0, "K2 anomalies detected (non-vacuous)");
     if (cpu.anomaly_count == gpu.anomaly_count && cpu.anomaly_count > 0) {

@@ -133,7 +133,8 @@ clean: ## Remove build artifacts
 API_HOST ?= $(if $(SENTINEL_API_HOST),$(SENTINEL_API_HOST),127.0.0.1)
 API_PORT ?= $(if $(SENTINEL_API_PORT),$(SENTINEL_API_PORT),8000)
 
-.PHONY: api api-openapi test-api api-bootstrap api-deploy produce test-producer
+.PHONY: api api-openapi test-api api-bootstrap api-deploy produce test-producer \
+	test-cpu cpu-cli cpu-baseline
 
 api: ## Run the control API locally (uvicorn --reload)
 	PYTHONPATH=src $(PYTHON) -m sentinel.api.cli serve --host $(API_HOST) --port $(API_PORT) --reload
@@ -149,6 +150,19 @@ produce: ## Poll the ingest queue once and write chunks/manifests/jobs
 
 test-producer: ## Run only the streaming-chunker/producer tests
 	$(PYTHON) -m pytest tests/producer tests/unit/test_chunker.py -q
+
+test-cpu: ## Run CPU reference correctness tests
+	$(PYTHON) -m pytest tests/cpu -q
+
+cpu-cli: ## Run the CPU reference over the sample fixture
+	PYTHONPATH=src $(PYTHON) -m sentinel.detector.cli detect \
+		--input tests/fixtures/sample.log --rules tests/fixtures/cpu/rules.json \
+		--out results/cpu-reference-sample.json
+
+cpu-baseline: ## Save CPU single-thread (and optional threaded) baselines
+	PYTHONPATH=src $(PYTHON) -m sentinel.detector.cli baseline \
+		--input data/bench.log --rules tests/fixtures/cpu/rules.json \
+		--threads 2 --native
 
 api-bootstrap: ## Provision the API service inside the `api` container (once)
 	./lxd/bootstrap-api.sh api

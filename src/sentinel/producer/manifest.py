@@ -10,14 +10,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..detector.semantics import ALGORITHM_VERSION, SEMANTICS_DOC
 from ..ids import canonical_json, line_id_for
 from .chunker import ChunkRecord, SourceSpec
 
 MANIFEST_SCHEMA_VERSION = 1
 MANIFEST_TYPE = "chunk"
 TIMESTAMP_POLICY = (
-    "preserve-source-bytes; timestamps are interpreted by the detector "
-    "configuration in Sprint 4"
+    "preserve-source-bytes; timestamps are interpreted as documented in "
+    f"{SEMANTICS_DOC}"
 )
 
 
@@ -76,6 +77,10 @@ def build_chunk_manifest(
             "byte_end": record.byte_end,
         },
         "detector_config_hash": detector_config_hash,
+        "algorithm": {
+            "version": ALGORITHM_VERSION,
+            "semantics": SEMANTICS_DOC,
+        },
         "parser_version": parser_version,
         "timestamp_policy": TIMESTAMP_POLICY,
         "label_reference": label_reference,
