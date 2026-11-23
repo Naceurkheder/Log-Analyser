@@ -156,4 +156,7 @@ extern "C" void sentinel_free_results(sentinel_results* out) {
     out->line_flags = nullptr;
     out->anomaly_records = nullptr;
     out->anomaly_count = 0;
+    out->cells = 0;
+    out->mean = 0.0;
+    out->std = 0.0;
 }

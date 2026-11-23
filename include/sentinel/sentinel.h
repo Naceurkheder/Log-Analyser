@@ -46,6 +46,11 @@ typedef struct {
     /* K2 anomalies, sorted by (bucket, service, ip) for CPU/GPU parity. */
     uint32_t anomaly_count;
     uint32_t* anomaly_records; /* anomaly_count * 4: ip, bucket, service, count */
+    /* K2 baseline statistics over all non-empty cells (populated by both
+     * backends so Python can verify the statistics stage directly). */
+    uint64_t cells;  /* number of non-empty (ip, bucket, service) cells */
+    double mean;     /* exact integer mean of per-cell counts, 0 if no cells */
+    double std;      /* population stddev; zero variance yields 0.0 */
 } sentinel_results;
 
 /* Shared deterministic tokenizer. Outputs are malloc'd; caller free()s. */

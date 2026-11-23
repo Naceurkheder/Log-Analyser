@@ -105,6 +105,9 @@ int main(int argc, char** argv) {
         }
     }
     uint32_t anomalies = results.anomaly_count;
+    uint64_t cells = results.cells;
+    double cell_mean = results.mean;
+    double cell_std = results.std;
     sentinel_free_results(&results);
 
     /* measured repetitions */
@@ -124,11 +127,12 @@ int main(int argc, char** argv) {
     double mb = (double)data.size() / 1e6;
     printf("{\"backend\": \"%s\", \"bytes\": %zu, \"lines\": %u, "
            "\"best_ms\": %.3f, \"mb_per_s\": %.1f, \"lines_per_s\": %.0f, "
-           "\"flagged_lines\": %u, \"pattern_hits\": %u, \"anomalies\": %u}\n",
+           "\"flagged_lines\": %u, \"pattern_hits\": %u, \"anomalies\": %u, "
+           "\"cells\": %llu, \"mean\": %.6f, \"std\": %.6f}\n",
            SENTINEL_BACKEND_NAME, data.size(), in.line_count, best,
            mb / (best / 1000.0),
            (double)in.line_count / (best / 1000.0), flagged_lines, total_hits,
-           anomalies);
+           anomalies, (unsigned long long)cells, cell_mean, cell_std);
 
     free(offs);
     free(ips);
