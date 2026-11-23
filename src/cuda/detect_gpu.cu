@@ -15,15 +15,16 @@
  *   Flagged cells are sorted on the host by (bucket, service, ip) so both
  *   backends emit byte-identical anomaly lists.
  *
- * Chunked staging: input bytes are moved host->device through PINNED memory
- * in chunks (default 64 MB) on a dedicated stream with cudaMemcpyAsync;
- * chunk boundaries are always line boundaries.
+ * Chunked staging: input bytes are moved host->device through one bounded
+ * PINNED buffer (default 16 MiB, hard cap 16 MiB for the 16g host profile)
+ * on a dedicated stream; chunk boundaries are always line boundaries.
  */
 #include "tokenizer.h"
 
 #include <cuda_runtime.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -33,16 +34,40 @@ namespace {
 
 constexpr uint64_t TABLE_SLOTS = 1u << 21; /* power of two, matches CPU */
 constexpr uint32_t SENTINEL_MIN_CELLS = 32;
-constexpr size_t PINNED_CHUNK_BYTES = (size_t)64 << 20; /* 64 MB staging */
+constexpr size_t DEFAULT_STAGE_BYTES = (size_t)16 << 20; /* 16g profile cap */
+constexpr size_t MIN_STAGE_BYTES = (size_t)1 << 20;
+constexpr size_t MAX_STAGE_BYTES = (size_t)16 << 20;
+
+static size_t stage_bytes_from_env() {
+    const char* value = std::getenv("SENTINEL_GPU_STAGE_BYTES");
+    unsigned long long bytes = value ? strtoull(value, nullptr, 10) : DEFAULT_STAGE_BYTES;
+    if (bytes < MIN_STAGE_BYTES) bytes = MIN_STAGE_BYTES;
+    if (bytes > MAX_STAGE_BYTES) bytes = MAX_STAGE_BYTES;
+    return (size_t)bytes;
+}
+
+static double now_ms() {
+    return std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 #define CUDA_CHECK(call)                                                       \
     do {                                                                       \
         cudaError_t err_ = (call);                                             \
         if (err_ != cudaSuccess) {                                             \
-            fprintf(stderr, "CUDA error %s at %s:%d: %s\n", #call, __FILE__,   \
-                    __LINE__, cudaGetErrorString(err_));                       \
-            return -3;                                                          \
+            bool oom_ = err_ == cudaErrorMemoryAllocation;                     \
+            fprintf(stderr, "CUDA %s %s at %s:%d: %s\n",                       \
+                    oom_ ? "OOM" : "error", #call, __FILE__, __LINE__,         \
+                    cudaGetErrorString(err_));                                 \
+            return oom_ ? SENTINEL_ERR_OOM : SENTINEL_ERR_CUDA;                \
         }                                                                      \
+    } while (0)
+
+/* Every launch must be checked for asynchronous launch/configuration errors. */
+#define CUDA_LAUNCH_CHECK(...)                                                 \
+    do {                                                                       \
+        (__VA_ARGS__);                                                         \
+        CUDA_CHECK(cudaGetLastError());                                        \
     } while (0)
 
 /* ----------------------------- K1 ----------------------------- */
@@ -130,7 +155,6 @@ __global__ void k2_count_kernel(const uint32_t* __restrict__ line_ip,
 __global__ void k2_stats_kernel(CellTable table, unsigned long long* sum,
                                 unsigned long long* sumsq,
                                 unsigned long long* ncells) {
-    uint32_t mask = (uint32_t)(TABLE_SLOTS - 1);
     for (uint32_t s = blockIdx.x * blockDim.x + threadIdx.x; s < TABLE_SLOTS;
          s += gridDim.x * blockDim.x) {
         uint32_t c = table.counts[s];
@@ -210,6 +234,9 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
         return -1;
     }
     const uint32_t n = in->line_count;
+    const double call_start = now_ms();
+    double mark = call_start;
+    double h2d_enqueue_ms = 0.0, kernel_enqueue_ms = 0.0, d2h_enqueue_ms = 0.0;
     memset(out, 0, sizeof(*out));
 
     /* ---- host-side setup ---- */
@@ -238,7 +265,8 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
     uint32_t* d_out_count = nullptr;
     unsigned long long* d_sum = nullptr;
 
-    size_t chunk_cap = PINNED_CHUNK_BYTES + (1u << 20); /* + 1 MB line headroom */
+    const size_t stage = stage_bytes_from_env();
+    size_t chunk_cap = stage + (1u << 20); /* + 1 MB line headroom */
 
     uint8_t* h_pinned = nullptr;
     cudaStream_t stream = nullptr;
@@ -261,6 +289,8 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
 
         CUDA_CHECK(cudaHostAlloc(&h_pinned, chunk_cap, cudaHostAllocDefault));
         CUDA_CHECK(cudaStreamCreate(&stream));
+        out->timing.alloc_ms = now_ms() - mark;
+        mark = now_ms();
 
         CUDA_CHECK(cudaMemcpyToSymbolAsync(k_patterns, host_patterns,
                                            sizeof(host_patterns), 0,
@@ -302,7 +332,7 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
             size_t bytes = 0;
             while (end < n) {
                 size_t lb = (size_t)in->line_offsets[end + 1] - in->line_offsets[first];
-                if (bytes && lb > PINNED_CHUNK_BYTES) break;
+                if (bytes && lb > stage) break;
                 bytes = lb;
                 ++end;
             }
@@ -318,28 +348,33 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
             }
 
             memcpy(h_pinned, in->data + off, len);
+            double t = now_ms();
             CUDA_CHECK(cudaMemcpyAsync(d_chunk, h_pinned, len,
                                        cudaMemcpyHostToDevice, stream));
             CUDA_CHECK(cudaMemcpyAsync(d_offsets, local,
                                        sizeof(uint32_t) * (end - first + 1),
                                        cudaMemcpyHostToDevice, stream));
+            h2d_enqueue_ms += now_ms() - t;
             free(local);
             if (rc) break;
 
-            k1_matcher_kernel<<<k1_grid, k1_block, 0, stream>>>(
-                d_chunk, d_offsets, first, end, d_flags);
-            k2_count_kernel<<<k2_grid, k2_block, 0, stream>>>(
-                d_ip, d_bucket, d_service, first, end, table);
+            t = now_ms();
+            CUDA_LAUNCH_CHECK(k1_matcher_kernel<<<k1_grid, k1_block, 0, stream>>>(
+                d_chunk, d_offsets, first, end, d_flags));
+            CUDA_LAUNCH_CHECK(k2_count_kernel<<<k2_grid, k2_block, 0, stream>>>(
+                d_ip, d_bucket, d_service, first, end, table));
+            kernel_enqueue_ms += now_ms() - t;
 
             li = end;
         }
         if (rc) break;
 
         /* ---- K2 pass 2 + pass 3 over the whole table ---- */
-        k2_stats_kernel<<<256, 256, 0, stream>>>(table, d_sum, d_sum + 1,
-                                                 d_sum + 2);
+        CUDA_LAUNCH_CHECK(k2_stats_kernel<<<256, 256, 0, stream>>>(
+            table, d_sum, d_sum + 1, d_sum + 2));
 
         unsigned long long h_stats[3];
+        double t = now_ms();
         CUDA_CHECK(cudaMemcpyAsync(h_stats, d_sum, sizeof(h_stats),
                                    cudaMemcpyDeviceToHost, stream));
         CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -353,10 +388,13 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
         out->cells = h_stats[2];
         out->mean = mean;
         out->std = std;
+        t = now_ms();
         if (h_stats[2] >= SENTINEL_MIN_CELLS) {
-            k2_flag_kernel<<<256, 256, 0, stream>>>(
-                table, mean, std, cfg->z_threshold, d_records, d_out_count);
+            CUDA_LAUNCH_CHECK(k2_flag_kernel<<<256, 256, 0, stream>>>(
+                table, mean, std, cfg->z_threshold, d_records, d_out_count));
         }
+        kernel_enqueue_ms += now_ms() - t;
+        t = now_ms();
 
         CUDA_CHECK(cudaMemcpyAsync(out->line_flags, d_flags,
                                    sizeof(uint32_t) * n, cudaMemcpyDeviceToHost,
@@ -365,20 +403,36 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
         uint32_t h_count = 0;
         CUDA_CHECK(cudaMemcpyAsync(&h_count, d_out_count, sizeof(uint32_t),
                                    cudaMemcpyDeviceToHost, stream));
+        d2h_enqueue_ms += now_ms() - t;
         CUDA_CHECK(cudaStreamSynchronize(stream));
 
         if (h_count) {
             uint32_t* recs = (uint32_t*)malloc(sizeof(uint32_t) * 4 * h_count);
             if (!recs) { rc = -2; break; }
+            double copy_start = now_ms();
             CUDA_CHECK(cudaMemcpy(recs, d_records,
                                   sizeof(uint32_t) * 4 * h_count,
                                   cudaMemcpyDeviceToHost));
+            d2h_enqueue_ms += now_ms() - copy_start;
             uint32_t* sorted = sort_records(recs, h_count);
             if (!sorted) { free(recs); rc = -2; break; }
             out->anomaly_count = h_count;
             out->anomaly_records = sorted;
         }
     } while (0);
+
+    out->timing.h2d_ms = h2d_enqueue_ms;
+    out->timing.kernel_ms = kernel_enqueue_ms;
+    out->timing.d2h_ms = d2h_enqueue_ms;
+    out->timing.total_ms = now_ms() - call_start;
+    out->timing.peak_device_bytes = (uint64_t)chunk_cap
+        + (uint64_t)sizeof(uint32_t) * (n + 1)
+        + (uint64_t)sizeof(uint32_t) * (n ? n : 1) * 2
+        + (uint64_t)sizeof(uint16_t) * (n ? n : 1)
+        + (uint64_t)sizeof(uint8_t) * (n ? n : 1)
+        + (uint64_t)(sizeof(uint64_t) + sizeof(uint32_t)) * TABLE_SLOTS
+        + (uint64_t)sizeof(uint32_t) * 4 * TABLE_SLOTS
+        + (uint64_t)sizeof(unsigned long long) * 3;
 
     /* ---- cleanup ---- */
     if (d_chunk) cudaFree(d_chunk);
