@@ -10,13 +10,15 @@ from __future__ import annotations
 
 import ctypes
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_LIB_PATH = REPO_ROOT / "build" / "libsentinel_cpu.so"
+DEFAULT_GPU_LIB_PATH = REPO_ROOT / "build" / "libsentinel.so"
 MAX_PATTERNS = 32
 MAX_PATTERN_LEN = 63
+ABI_VERSION = 2
 
 
 class NativeLibraryUnavailable(RuntimeError):
@@ -43,6 +45,17 @@ class SentinelInput(ctypes.Structure):
     ]
 
 
+class SentinelTiming(ctypes.Structure):
+    _fields_ = [
+        ("peak_device_bytes", ctypes.c_uint64),
+        ("alloc_ms", ctypes.c_double),
+        ("h2d_ms", ctypes.c_double),
+        ("kernel_ms", ctypes.c_double),
+        ("d2h_ms", ctypes.c_double),
+        ("total_ms", ctypes.c_double),
+    ]
+
+
 class SentinelResults(ctypes.Structure):
     _fields_ = [
         ("line_flags", ctypes.POINTER(ctypes.c_uint32)),
@@ -51,6 +64,7 @@ class SentinelResults(ctypes.Structure):
         ("cells", ctypes.c_uint64),
         ("mean", ctypes.c_double),
         ("std", ctypes.c_double),
+        ("timing", SentinelTiming),
     ]
 
 
@@ -62,6 +76,8 @@ class NativeResult:
     cells: int
     mean: float
     std: float
+    timing: dict[str, int | float] = field(default_factory=dict)
+    build_id: str = "dev"
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -71,6 +87,8 @@ class NativeResult:
             "cells": self.cells,
             "mean": self.mean,
             "std": self.std,
+            "timing": dict(self.timing),
+            "build_id": self.build_id,
         }
 
 
@@ -102,9 +120,38 @@ def load_library(path: str | Path | None = None) -> ctypes.CDLL:
         ctypes.POINTER(SentinelResults),
     ]
     lib.sentinel_detect_cpu.restype = ctypes.c_int
+    if hasattr(lib, "sentinel_detect_gpu"):
+        lib.sentinel_detect_gpu.argtypes = [
+            ctypes.POINTER(SentinelInput), ctypes.POINTER(SentinelConfig),
+            ctypes.POINTER(SentinelResults),
+        ]
+        lib.sentinel_detect_gpu.restype = ctypes.c_int
     lib.sentinel_free_results.argtypes = [ctypes.POINTER(SentinelResults)]
     lib.sentinel_free_results.restype = None
+    lib.sentinel_abi_version.argtypes = []
+    lib.sentinel_abi_version.restype = ctypes.c_uint32
+    lib.sentinel_build_id.argtypes = []
+    lib.sentinel_build_id.restype = ctypes.c_char_p
     return lib
+
+
+def load_gpu_library(path: str | Path | None = None) -> ctypes.CDLL:
+    target = path or os.environ.get("SENTINEL_GPU_LIB") or DEFAULT_GPU_LIB_PATH
+    lib = load_library(target)
+    if not hasattr(lib, "sentinel_detect_gpu"):
+        raise NativeLibraryUnavailable(
+            f"{target} does not export sentinel_detect_gpu; run 'make lib'"
+        )
+    return lib
+
+
+def assert_abi(lib: ctypes.CDLL) -> str:
+    version = lib.sentinel_abi_version()
+    if version != ABI_VERSION:
+        raise RuntimeError(
+            f"native ABI mismatch: library {version}, binding expects {ABI_VERSION}"
+        )
+    return lib.sentinel_build_id().decode("utf-8", "replace")
 
 
 @dataclass
@@ -153,9 +200,21 @@ def detect_native(
     z_threshold: float = 4.0,
     *,
     lib: ctypes.CDLL | None = None,
+    backend: str = "cpu",
+    check_abi: bool = True,
 ) -> NativeResult:
-    """Run the documented native K1/K2 ABI over raw bytes."""
-    lib = lib or load_library()
+    """Run the documented native K1/K2 ABI over raw bytes.
+
+    ``backend`` selects the exported ``sentinel_detect_cpu`` or
+    ``sentinel_detect_gpu`` symbol. The two libraries are layout-compatible;
+    only the timing block differs (GPU fills it, CPU leaves it zeroed).
+    """
+    if backend not in {"cpu", "gpu"}:
+        raise ValueError("backend must be 'cpu' or 'gpu'")
+    lib = lib or (load_gpu_library() if backend == "gpu" else load_library())
+    build_id = assert_abi(lib) if check_abi else "dev"
+    symbol = "sentinel_detect_cpu" if backend == "cpu" else "sentinel_detect_gpu"
+    detect_fn = getattr(lib, symbol)
     if len(patterns) > MAX_PATTERNS:
         raise ValueError(f"native ABI supports at most {MAX_PATTERNS} patterns")
     encoded = [pattern.encode("utf-8") for pattern in patterns]
@@ -173,13 +232,13 @@ def detect_native(
     tokenized = tokenize_native(data, lib)
     native_input = tokenized.as_input()
     results = SentinelResults()
-    rc = lib.sentinel_detect_cpu(
+    rc = detect_fn(
         ctypes.byref(native_input), ctypes.byref(config), ctypes.byref(results)
     )
     if rc != 0:
         lib.sentinel_free_results(ctypes.byref(results))
         tokenized.free(ctypes.CDLL(None))
-        raise RuntimeError(f"sentinel_detect_cpu failed with code {rc}")
+        raise RuntimeError(f"{symbol} failed with code {rc}")
 
     try:
         n = tokenized.count
@@ -193,9 +252,18 @@ def detect_native(
             )
             for i in range(results.anomaly_count)
         )
+        timing = {
+            "peak_device_bytes": int(results.timing.peak_device_bytes),
+            "alloc_ms": float(results.timing.alloc_ms),
+            "h2d_ms": float(results.timing.h2d_ms),
+            "kernel_ms": float(results.timing.kernel_ms),
+            "d2h_ms": float(results.timing.d2h_ms),
+            "total_ms": float(results.timing.total_ms),
+        }
         return NativeResult(
             line_count=n, line_flags=flags, anomalies=anomalies,
             cells=int(results.cells), mean=float(results.mean), std=float(results.std),
+            timing=timing, build_id=build_id,
         )
     finally:
         lib.sentinel_free_results(ctypes.byref(results))

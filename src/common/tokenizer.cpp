@@ -165,4 +165,5 @@ extern "C" void sentinel_free_results(sentinel_results* out) {
     out->cells = 0;
     out->mean = 0.0;
     out->std = 0.0;
+    out->timing = sentinel_timing{};
 }
