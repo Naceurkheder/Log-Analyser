@@ -24,6 +24,7 @@ from .contract import (
 )
 from .errors import ApiError, install_error_handlers
 from .log import install_request_logging
+from .metrics import add_metrics_route, api_metrics
 from .schemas import (
     AlertPage,
     AlertSummary,
@@ -423,6 +424,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.store = SentinelStore(settings)
     install_request_logging(app, settings.log_level)
     install_error_handlers(app)
+    add_metrics_route(app, api_metrics)
     _register_routes(app)
     return app
 

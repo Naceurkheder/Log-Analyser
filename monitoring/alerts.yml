@@ -1,0 +1,80 @@
+# Core pipeline alerts. Every metric referenced here is documented in
+# docs/decisions/0011-artifact-observability.md; worker names carry only
+# bounded service/backend/result/error_class labels.
+
+groups:
+  - name: sentinel-pipeline
+    rules:
+      - alert: StuckQueue
+        expr: sentinel_queue_oldest_pending_seconds{service="producer",result="pending"} > 900
+        for: 5m
+        labels:
+          severity: warning
+          service: producer
+        annotations:
+          summary: Oldest pending ingest item exceeds 15 minutes
+          description: The producer queue has not drained for at least 20 minutes.
+          runbook: monitoring/README.md#alerts
+
+      - alert: StaleHeartbeat
+        expr: time() - max by (service, backend) (sentinel_worker_heartbeat_timestamp_seconds{result="ok"}) > 120
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Worker heartbeat is older than two minutes
+          description: A worker may be stuck or no longer scraping-compatible.
+          runbook: monitoring/README.md#alerts
+
+      - alert: GrowingDLQ
+        expr: increase(sentinel_worker_dlq_total{result="dlq"}[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Dead-letter queue is growing
+          description: Failed jobs are being parked in the DLQ; inspect error_class.
+          runbook: monitoring/README.md#alerts
+
+      - alert: RepeatedCUDAErrors
+        expr: increase(sentinel_worker_cuda_errors_total{service="gpu-worker",backend="gpu",error_class=~"cuda|oom"}[10m]) >= 3
+        for: 5m
+        labels:
+          severity: critical
+          service: gpu-worker
+        annotations:
+          summary: Repeated CUDA errors on the GPU worker
+          description: Three or more CUDA/OOM errors in ten minutes; stop scheduling GPU jobs.
+          runbook: monitoring/README.md#alerts
+
+      - alert: OutboxBacklog
+        expr: sentinel_worker_outbox_backlog{service="producer",result="pending"} > 100
+        for: 10m
+        labels:
+          severity: warning
+          service: producer
+        annotations:
+          summary: Durable outbox backlog exceeds 100 messages
+          description: The producer is not dispatching outbox entries fast enough.
+          runbook: monitoring/README.md#alerts
+
+      - alert: MemoryPressure
+        expr: |
+          (
+            sentinel_worker_memory_bytes{result="rss"}
+              / on (service, backend) group_left()
+            sentinel_worker_memory_bytes{result="limit"}
+          ) > 0.85
+          or
+          (
+            sentinel_worker_gpu_memory_bytes{result="used"}
+              / on (service, backend) group_left()
+            sentinel_worker_gpu_memory_bytes{result="limit"}
+          ) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host RAM or VRAM usage above the safe threshold
+          description: RSS is above 85% of its cap or device memory above 90%.
+          runbook: monitoring/README.md#alerts

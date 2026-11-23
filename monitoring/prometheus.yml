@@ -1,0 +1,42 @@
+# Prometheus scrape configuration for the local LXD fleet.
+# Retention is intentionally short (12h) and set by the launcher:
+#   --storage.tsdb.retention.time=12h
+# See monitoring/README.md and monitoring/docker-compose.yml.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: sentinel-lxd
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: sentinel-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8000"]
+        labels:
+          service: api
+
+  - job_name: sentinel-producer
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["producer:8081"]
+        labels:
+          service: producer
+
+  - job_name: sentinel-gpu-worker
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["gpu-worker-1:8082"]
+        labels:
+          service: gpu-worker
+
+  - job_name: sentinel-cpu-worker
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["cpu-worker-1:8083"]
+        labels:
+          service: cpu-worker
