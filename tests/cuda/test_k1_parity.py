@@ -102,6 +102,14 @@ def test_staging_boundary_crosses_16mib(cpu_lib, gpu_lib) -> None:
     _assert_parity(data, cpu_lib, gpu_lib, z=2.5)
 
 
+def test_multiple_staging_slots_do_not_race(cpu_lib, gpu_lib) -> None:
+    # More than two 16 MiB chunks exercises both pinned/device buffer slots.
+    # A single reused staging buffer races with in-flight cudaMemcpyAsync DMA.
+    data = _dataset(555, 920_000)
+    assert len(data) > (48 << 20)
+    _assert_parity(data, cpu_lib, gpu_lib, z=2.5)
+
+
 def test_stage_size_environment_is_bounded(
     cpu_lib, gpu_lib, monkeypatch: pytest.MonkeyPatch
 ) -> None:

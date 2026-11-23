@@ -253,9 +253,9 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
     out->line_flags = (uint32_t*)calloc(n ? n : 1, sizeof(uint32_t));
     if (!out->line_flags) return -2;
 
-    /* ---- device allocations ---- */
-    uint8_t* d_chunk = nullptr;
-    uint32_t* d_offsets = nullptr;
+    /* ---- device allocations (double-buffered staging) ---- */
+    uint8_t* d_chunk[2] = {nullptr, nullptr};
+    uint32_t* d_offsets[2] = {nullptr, nullptr};
     uint32_t* d_flags = nullptr;
     uint32_t* d_ip = nullptr;
     uint16_t* d_bucket = nullptr;
@@ -268,14 +268,18 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
     const size_t stage = stage_bytes_from_env();
     size_t chunk_cap = stage + (1u << 20); /* + 1 MB line headroom */
 
-    uint8_t* h_pinned = nullptr;
+    uint8_t* h_pinned[2] = {nullptr, nullptr};
+    uint32_t* h_offsets[2] = {nullptr, nullptr};
+    cudaEvent_t chunk_done[2] = {nullptr, nullptr};
     cudaStream_t stream = nullptr;
 
     /* Scope guard via goto-cleanup pattern (C-style CUDA resource mgmt). */
     int rc = 0;
     do {
-        CUDA_CHECK(cudaMalloc(&d_chunk, chunk_cap));
-        CUDA_CHECK(cudaMalloc(&d_offsets, sizeof(uint32_t) * (n + 1)));
+        for (int slot = 0; slot < 2; ++slot) {
+            CUDA_CHECK(cudaMalloc(&d_chunk[slot], chunk_cap));
+            CUDA_CHECK(cudaMalloc(&d_offsets[slot], sizeof(uint32_t) * (n + 1)));
+        }
         CUDA_CHECK(cudaMalloc(&d_flags, sizeof(uint32_t) * (n ? n : 1)));
         CUDA_CHECK(cudaMalloc(&d_ip, sizeof(uint32_t) * (n ? n : 1)));
         CUDA_CHECK(cudaMalloc(&d_bucket, sizeof(uint16_t) * (n ? n : 1)));
@@ -287,7 +291,14 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
         CUDA_CHECK(cudaMalloc(&d_out_count, sizeof(uint32_t)));
         CUDA_CHECK(cudaMalloc(&d_sum, sizeof(unsigned long long) * 3));
 
-        CUDA_CHECK(cudaHostAlloc(&h_pinned, chunk_cap, cudaHostAllocDefault));
+        for (int slot = 0; slot < 2; ++slot) {
+            CUDA_CHECK(cudaHostAlloc(&h_pinned[slot], chunk_cap,
+                                     cudaHostAllocDefault));
+            CUDA_CHECK(cudaHostAlloc(&h_offsets[slot],
+                                     sizeof(uint32_t) * (n + 1),
+                                     cudaHostAllocDefault));
+            CUDA_CHECK(cudaEventCreate(&chunk_done[slot]));
+        }
         CUDA_CHECK(cudaStreamCreate(&stream));
         out->timing.alloc_ms = now_ms() - mark;
         mark = now_ms();
@@ -323,8 +334,12 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
         const int k1_grid = (int)std::min<uint64_t>(2048, (n + k1_block - 1) / k1_block + 1);
         const int k2_grid = 1024;
 
-        /* ---- chunked staging over line-aligned byte ranges ---- */
+        /* ---- chunked staging over line-aligned byte ranges ----
+         * Two pinned/device buffer pairs are alternated. A slot is reused only
+         * after an event reports that its previous async copy + kernels have
+         * finished; reusing a single buffer raced with in-flight DMA. */
         uint32_t li = 0;
+        uint32_t chunk_index = 0;
         while (li < n) {
             /* extend the chunk until byte budget is reached at a line edge */
             uint32_t first = li;
@@ -339,32 +354,40 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
 
             size_t off = in->line_offsets[first];
             size_t len = in->line_offsets[end] - off;
+            const int slot = (int)(chunk_index & 1u);
+            if (chunk_index >= 2) {
+                cudaError_t wait_err = cudaEventSynchronize(chunk_done[slot]);
+                if (wait_err != cudaSuccess) {
+                    rc = wait_err == cudaErrorMemoryAllocation
+                             ? SENTINEL_ERR_OOM : SENTINEL_ERR_CUDA;
+                    break;
+                }
+            }
 
             /* build per-chunk local offsets (line i -> its start within chunk) */
-            uint32_t* local = (uint32_t*)malloc(sizeof(uint32_t) * (end - first + 1));
-            if (!local) { rc = -2; break; }
+            uint32_t* local = h_offsets[slot];
             for (uint32_t k = 0; k <= end - first; ++k) {
                 local[k] = in->line_offsets[first + k] - (uint32_t)off;
             }
 
-            memcpy(h_pinned, in->data + off, len);
+            memcpy(h_pinned[slot], in->data + off, len);
             double t = now_ms();
-            CUDA_CHECK(cudaMemcpyAsync(d_chunk, h_pinned, len,
+            CUDA_CHECK(cudaMemcpyAsync(d_chunk[slot], h_pinned[slot], len,
                                        cudaMemcpyHostToDevice, stream));
-            CUDA_CHECK(cudaMemcpyAsync(d_offsets, local,
+            CUDA_CHECK(cudaMemcpyAsync(d_offsets[slot], local,
                                        sizeof(uint32_t) * (end - first + 1),
                                        cudaMemcpyHostToDevice, stream));
             h2d_enqueue_ms += now_ms() - t;
-            free(local);
-            if (rc) break;
 
             t = now_ms();
             CUDA_LAUNCH_CHECK(k1_matcher_kernel<<<k1_grid, k1_block, 0, stream>>>(
-                d_chunk, d_offsets, first, end, d_flags));
+                d_chunk[slot], d_offsets[slot], first, end, d_flags));
             CUDA_LAUNCH_CHECK(k2_count_kernel<<<k2_grid, k2_block, 0, stream>>>(
                 d_ip, d_bucket, d_service, first, end, table));
             kernel_enqueue_ms += now_ms() - t;
+            CUDA_CHECK(cudaEventRecord(chunk_done[slot], stream));
 
+            ++chunk_index;
             li = end;
         }
         if (rc) break;
@@ -425,8 +448,8 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
     out->timing.kernel_ms = kernel_enqueue_ms;
     out->timing.d2h_ms = d2h_enqueue_ms;
     out->timing.total_ms = now_ms() - call_start;
-    out->timing.peak_device_bytes = (uint64_t)chunk_cap
-        + (uint64_t)sizeof(uint32_t) * (n + 1)
+    out->timing.peak_device_bytes = 2ull * (uint64_t)chunk_cap
+        + 2ull * (uint64_t)sizeof(uint32_t) * (n + 1)
         + (uint64_t)sizeof(uint32_t) * (n ? n : 1) * 2
         + (uint64_t)sizeof(uint16_t) * (n ? n : 1)
         + (uint64_t)sizeof(uint8_t) * (n ? n : 1)
@@ -435,8 +458,13 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
         + (uint64_t)sizeof(unsigned long long) * 3;
 
     /* ---- cleanup ---- */
-    if (d_chunk) cudaFree(d_chunk);
-    if (d_offsets) cudaFree(d_offsets);
+    for (int slot = 0; slot < 2; ++slot) {
+        if (d_chunk[slot]) cudaFree(d_chunk[slot]);
+        if (d_offsets[slot]) cudaFree(d_offsets[slot]);
+        if (h_pinned[slot]) cudaFreeHost(h_pinned[slot]);
+        if (h_offsets[slot]) cudaFreeHost(h_offsets[slot]);
+        if (chunk_done[slot]) cudaEventDestroy(chunk_done[slot]);
+    }
     if (d_flags) cudaFree(d_flags);
     if (d_ip) cudaFree(d_ip);
     if (d_bucket) cudaFree(d_bucket);
@@ -446,7 +474,6 @@ extern "C" int sentinel_detect_gpu(const sentinel_input* in,
     if (d_records) cudaFree(d_records);
     if (d_out_count) cudaFree(d_out_count);
     if (d_sum) cudaFree(d_sum);
-    if (h_pinned) cudaFreeHost(h_pinned);
     if (stream) cudaStreamDestroy(stream);
 
     if (rc) {

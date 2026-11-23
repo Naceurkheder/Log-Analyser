@@ -20,7 +20,9 @@
    returned to the caller; there is no unbounded retry or silent CPU fallback.
 4. Cap GPU staging at 16 MiB for the validated 16 GB profile. The
    `SENTINEL_GPU_STAGE_BYTES` override is clamped to `[1 MiB, 16 MiB]` and
-   chunk boundaries remain line-aligned.
+   chunk boundaries remain line-aligned. Two pinned/device buffer pairs are
+   alternated with CUDA events so a slot is never overwritten while its
+   async copy is in flight.
 5. Build with either Make (fast laptop workflow) or CMake
    (`SENTINEL_ENABLE_CUDA=ON|OFF`). CMake always builds the CPU-only target and
    optionally the CUDA library plus a minimal kernel smoke executable. Supported
