@@ -84,6 +84,7 @@ if(SENTINEL_ENABLE_CUDA)
     src/common/abi.cpp
     src/cpu/detect_cpu.cpp
     src/cuda/detect_gpu.cu
+    src/cuda/window_kernels.cu
     src/backend/backend_gpu.c
   )
   target_include_directories(sentinel_cuda PUBLIC

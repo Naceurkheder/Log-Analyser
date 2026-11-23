@@ -78,6 +78,59 @@ typedef struct {
     sentinel_timing timing; /* measured pipeline phases; zero on CPU path */
 } sentinel_results;
 
+/* ---- K2 sliding-window feature/score stage (S5-C) ----------------------
+ * This is the GPU port of the Sprint 4 windowed scorer, NOT the global
+ * histogram K2 above. The caller supplies validated feature rows (one per
+ * matched event); the library aggregates them by the full identity tuple
+ * (service, ip, status, window, rule) and scores each series against its
+ * previous windows. See docs/algorithm-semantics.md §§5–6.
+ */
+#define SENTINEL_MAX_FEATURES (1u << 20) /* hash table stays <= 50% occupied */
+
+typedef struct {
+    uint32_t count;               /* number of rows; <= SENTINEL_MAX_FEATURES */
+    const uint32_t* service;      /* count entries */
+    const uint32_t* ip;           /* count entries, host-order IPv4 */
+    const uint32_t* status;       /* count entries */
+    const int64_t* window_id;     /* count entries */
+    const uint32_t* rule_index;   /* count entries, index into rule config */
+    const uint32_t* event_count;  /* count entries, >= 1, <= UINT32_MAX */
+} sentinel_feature_input;
+
+typedef struct {
+    uint32_t baseline_windows;    /* 1..1440; same as DetectorSettings */
+    float z_threshold;            /* (0, 1000] */
+    uint32_t max_rule_index;      /* highest accepted rule_index; 0..255 */
+} sentinel_window_config;
+
+typedef struct {
+    uint32_t feature_count;
+    uint32_t* service;            /* aggregated identity + count */
+    uint32_t* ip;
+    uint32_t* status;
+    int64_t* window_id;
+    uint32_t* rule_index;
+    uint32_t* count;
+
+    uint32_t alert_count;
+    uint32_t* alert_service;
+    uint32_t* alert_ip;
+    uint32_t* alert_status;
+    int64_t* alert_window;
+    uint32_t* alert_rule;
+    uint32_t* alert_count_out; /* alert_count entries; name avoids count clash */
+    double* alert_mean;
+    double* alert_std;
+    double* alert_score;
+
+    sentinel_timing timing;
+} sentinel_window_results;
+
+int sentinel_detect_window_gpu(const sentinel_feature_input* in,
+                               const sentinel_window_config* cfg,
+                               sentinel_window_results* out);
+void sentinel_free_window_results(sentinel_window_results* out);
+
 /* Shared deterministic tokenizer. Outputs are malloc'd; caller free()s. */
 int sentinel_tokenize(const uint8_t* data, size_t len,
                       uint32_t** line_offsets, uint32_t** line_ip,
