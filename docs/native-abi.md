@@ -71,6 +71,15 @@ byte-identical `line_flags` and `anomaly_records` for the same input; the
 windowed Python scorer from Sprint 4 has separate documented semantics
 (`docs/algorithm-semantics.md` §§5–7) and is **not** the native K2 contract.
 
+The GPU library additionally exports `sentinel_detect_window_gpu`, which ports
+the Python windowed scorer (§7.1 of the semantics document) over bounded
+feature rows. It uses `sentinel_feature_input`, `sentinel_window_config` and
+`sentinel_window_results`; outputs are released with
+`sentinel_free_window_results()`. Up to `SENTINEL_MAX_FEATURES = 2^20` rows are
+accepted (the 2²¹-slot hash table stays at most half full), counts must be
+nonzero and full 64-bit identity hashing disambiguates collisions. This entry
+point is GPU-only and returns `SENTINEL_ERR_UNSUPPORTED` on a CPU library.
+
 ## 5. Bounded staging and ownership
 
 The GPU path stages raw bytes through one pinned host buffer and one device
